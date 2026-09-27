@@ -1,0 +1,80 @@
+<#
+  Comprime en lote los videos de los estudiantes para la web:
+  MP4 H.264, lado corto de 720 px (horizontal 1280x720, vertical 720x1280),
+  maximo 30 cuadros por segundo, audio AAC mono y un tope de ~7,5 MB para 90 s.
+
+  Tambien borra los metadatos del celular (ubicacion GPS, modelo del equipo)
+  y normaliza el nombre del archivo: minusculas, sin tildes ni espacios.
+
+  Uso (desde la carpeta del proyecto):
+    powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "C:\ruta\originales\11A" -Salida .\videos\11A
+#>
+param(
+  [Parameter(Mandatory = $true)] [string]$Entrada,
+  [Parameter(Mandatory = $true)] [string]$Salida,
+  # 600 kbit/s de video + 64 kbit/s de audio = ~7,5 MB en 90 s.
+  [int]$KbpsVideo = 600
+)
+
+$ErrorActionPreference = 'Stop'
+
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+  Write-Host 'No se encontro ffmpeg. Instalalo con:  scoop install ffmpeg' -ForegroundColor Red
+  exit 1
+}
+if (-not (Test-Path $Entrada)) {
+  Write-Host "No existe la carpeta de entrada: $Entrada" -ForegroundColor Red
+  exit 1
+}
+New-Item -ItemType Directory -Force -Path $Salida | Out-Null
+
+function Limpiar-Nombre([string]$nombre) {
+  $sinTildes = -join ($nombre.Normalize([Text.NormalizationForm]::FormD).ToCharArray() |
+    Where-Object { [Globalization.CharUnicodeInfo]::GetUnicodeCategory($_) -ne 'NonSpacingMark' })
+  $limpio = ($sinTildes.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')
+  if ($limpio) { $limpio } else { 'video' }
+}
+
+$extensiones = '.mp4', '.mov', '.m4v', '.avi', '.mkv', '.3gp', '.webm', '.wmv'
+$videos = Get-ChildItem -Path $Entrada -File | Where-Object { $extensiones -contains $_.Extension.ToLower() }
+if (-not $videos) {
+  Write-Host "No hay videos en $Entrada" -ForegroundColor Yellow
+  exit 0
+}
+
+# Lado corto a 720 px sin agrandar videos mas pequenos; -2 mantiene la proporcion con ancho/alto par.
+$escala = "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)'"
+$maxrate = "$($KbpsVideo)k"
+$bufsize = "$($KbpsVideo * 2)k"
+
+$resumen = @()
+foreach ($v in $videos) {
+  $destino = Join-Path $Salida ((Limpiar-Nombre $v.BaseName) + '.mp4')
+  Write-Host "`n>> $($v.Name)  ->  $destino" -ForegroundColor Cyan
+
+  & ffmpeg -hide_banner -loglevel error -stats -y -i $v.FullName `
+    -map 0:v:0 -map '0:a:0?' -map_metadata -1 -map_chapters -1 `
+    -vf $escala -fpsmax 30 `
+    -c:v libx264 -preset slow -crf 26 -maxrate $maxrate -bufsize $bufsize `
+    -profile:v high -pix_fmt yuv420p -g 60 `
+    -c:a aac -b:a 64k -ac 1 -ar 44100 `
+    -movflags +faststart $destino
+
+  if ($LASTEXITCODE -ne 0) {
+    $resumen += [pscustomobject]@{ Archivo = Split-Path $destino -Leaf; Segundos = '-'; MB = '-'; Aviso = 'ERROR al convertir' }
+    continue
+  }
+
+  $segundos = [math]::Round([double](& ffprobe -v error -show_entries format=duration -of csv=p=0 $destino), 1)
+  $mb = [math]::Round((Get-Item $destino).Length / 1MB, 2)
+  $avisos = @()
+  if ($segundos -gt 95) { $avisos += 'dura mas de 90 s' }
+  if ($segundos -lt 30) { $avisos += 'muy corto' }
+  if ($mb -gt 8) { $avisos += 'pesa mas de 8 MB (baja -KbpsVideo)' }
+  $resumen += [pscustomobject]@{ Archivo = Split-Path $destino -Leaf; Segundos = $segundos; MB = $mb; Aviso = ($avisos -join ', ') }
+}
+
+Write-Host "`nResumen:" -ForegroundColor Green
+$resumen | Format-Table -AutoSize
+$total = (Get-ChildItem -Path $Salida -Filter *.mp4 | Measure-Object Length -Sum).Sum / 1MB
+Write-Host ("Total en {0}: {1:N1} MB" -f $Salida, $total)

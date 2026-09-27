@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Cámara · Revista Aumentada ITEY</title>
+  <meta name="theme-color" content="#0f172a">
+  <link rel="icon" href="img/favicon.png">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/ar.css">
+  <!-- A-Frame 1.5.0 es la version con la que MindAR 1.2.5 esta probado. -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+</head>
+<body class="pagina-ar">
+  <!-- La escena de A-Frame la crea js/ar.js cuando sabe que curso cargar. -->
+
+  <div class="barra-ar">
+    <a class="barra-ar__volver" href="./">‹ Inicio</a>
+    <label class="barra-ar__curso" id="etiqueta-curso" hidden>
+      Curso
+      <select id="selector-curso" aria-label="Cambiar de curso"></select>
+    </label>
+  </div>
+
+  <div id="aviso-tecnico" class="aviso-tecnico" hidden></div>
+
+  <div id="guia" class="guia" hidden>
+    <div class="guia__marco" aria-hidden="true"></div>
+    <p id="guia-texto">Apunta a la portada de una revista</p>
+  </div>
+
+  <div id="tarjeta-ar" class="tarjeta-ar" hidden>
+    <div class="tarjeta-ar__texto">
+      <span id="tarjeta-curso" class="etiqueta"></span>
+      <strong id="tarjeta-titulo"></strong>
+      <span id="tarjeta-equipo"></span>
+    </div>
+    <div class="tarjeta-ar__botones">
+      <button id="boton-sonido" class="boton boton--blanco" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+        Activar sonido
+      </button>
+      <button id="boton-ver" class="boton" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        Ver video
+      </button>
+    </div>
+  </div>
+
+  <div id="cargando" class="capa">
+    <div class="capa__caja">
+      <div class="girador" aria-hidden="true"></div>
+      <p id="cargando-texto">Preparando la cámara…</p>
+      <div class="progreso" id="progreso" hidden><div id="progreso-barra"></div></div>
+      <p class="capa__nota">La primera vez puede tardar unos segundos.</p>
+    </div>
+  </div>
+
+  <div id="error" class="capa" hidden>
+    <div class="capa__caja">
+      <h2 id="error-titulo">No se pudo abrir la cámara</h2>
+      <p id="error-texto"></p>
+      <div class="acciones">
+        <button class="boton" type="button" onclick="location.reload()">Reintentar</button>
+        <a class="boton boton--blanco" href="./#lista">Ver la lista de videos</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="elegir" class="capa" hidden>
+    <div class="capa__caja">
+      <h2>¿De qué curso es la revista?</h2>
+      <p>Lo encuentras en la portada.</p>
+      <div id="rejilla-cursos" class="rejilla-cursos"></div>
+    </div>
+  </div>
+
+  <div id="pantalla-completa" class="pantalla-completa" hidden>
+    <video id="video-grande" controls playsinline webkit-playsinline></video>
+    <button id="cerrar-grande" class="boton boton--blanco" type="button">‹ Volver a la cámara</button>
+  </div>
+
+  <!-- Un solo reproductor para todas las revistas del curso: se descarga solo
+       el video que se esta viendo, y el permiso de sonido se da una vez. -->
+  <div hidden>
+    <video id="video-ar" playsinline webkit-playsinline muted loop preload="none"></video>
+  </div>
+
+  <script type="module" src="js/ar.js"></script>
+</body>
+</html>

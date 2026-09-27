@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Revista Aumentada · ITEY</title>
+  <meta name="description" content="Revistas de física del grado 11° del ITEY con realidad aumentada. Feria de la Ciencia 2026.">
+  <meta name="theme-color" content="#1e40af">
+  <link rel="icon" href="img/favicon.png">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header class="franja">
+    <div class="franja__contenido">
+      <img class="franja__logo" src="img/logo-itey.png" alt="ITEY">
+      <div>
+        <h1>Revista Aumentada</h1>
+        <p><span id="evento">Feria de la Ciencia 2026</span> · Física · Grado 11°</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenido">
+    <section class="portada">
+      <p class="portada__lema">Apunta la cámara a la portada de una revista y mira a sus autores explicar el artículo.</p>
+      <button id="abrir-camara" class="boton boton--grande" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        Abrir cámara
+      </button>
+    </section>
+
+    <h2>¿Cómo se usa?</h2>
+    <ol class="pasos">
+      <li class="tarjeta"><div><strong>Toca «Abrir cámara»</strong> y elige el curso de la revista. El curso aparece en la portada.</div></li>
+      <li class="tarjeta"><div><strong>Permite usar la cámara</strong> cuando el celular lo pregunte.</div></li>
+      <li class="tarjeta"><div><strong>Apunta a la portada</strong> completa, bien iluminada y a unos 30 cm. El video aparece encima de la página.</div></li>
+      <li class="tarjeta"><div><strong>Toca la pantalla para oír el sonido.</strong> Con el botón «Ver video» lo ves en grande.</div></li>
+    </ol>
+    <p class="nota">¿La cámara no funciona? Escanea el código QR impreso en la revista o busca la revista en la lista de abajo.</p>
+
+    <h2 id="lista">Revistas por curso</h2>
+    <div id="cursos" class="cursos" aria-live="polite">
+      <p>Cargando revistas…</p>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <img src="img/escudo-itey.jpg" alt="" width="44" height="44">
+    <p><strong>Instituto Técnico Empresarial El Yopal</strong> · Área de Ciencias Naturales</p>
+    <p>Yopal, Casanare · 2026</p>
+    <p>Esta página no usa cookies ni pide datos personales.</p>
+  </footer>
+
+  <dialog id="elegir-curso" class="dialogo">
+    <h2>¿De qué curso es la revista?</h2>
+    <p>Lo encuentras en la portada.</p>
+    <div id="rejilla-cursos" class="rejilla-cursos"></div>
+    <button class="boton boton--claro dialogo__cerrar" type="button" id="cerrar-dialogo">Cancelar</button>
+  </dialog>
+
+  <script type="module" src="js/inicio.js"></script>
+</body>
+</html>

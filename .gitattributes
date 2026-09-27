@@ -1,0 +1,6 @@
+# Archivos binarios: Git no debe tocar sus bytes (un .mind alterado deja de reconocer portadas)
+*.mind binary
+*.mp4 binary
+*.jpg binary
+*.jpeg binary
+*.png binary

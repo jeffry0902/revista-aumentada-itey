@@ -1,0 +1,171 @@
+/* Pantalla de la camara (ar.html). La imagen de la camara la pone MindAR
+   detras de todo con z-index negativo; por eso html no lleva fondo. */
+
+.pagina-ar {
+  background: #000;
+  color: var(--blanco);
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.barra-ar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) 14px 22px;
+  background: linear-gradient(rgb(15 23 42 / .75), rgb(15 23 42 / 0));
+}
+.barra-ar__volver {
+  color: var(--blanco);
+  text-decoration: none;
+  font-weight: 700;
+  padding: 8px 4px;
+}
+.barra-ar__curso { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.barra-ar select {
+  font: inherit;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--blanco);
+  color: var(--azul-800);
+}
+
+.aviso-tecnico {
+  position: fixed;
+  top: 64px;
+  left: 12px;
+  right: 12px;
+  z-index: 25;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--amarillo);
+  color: #422006;
+  font-size: .9rem;
+  font-weight: 600;
+}
+
+/* Guia para apuntar */
+.guia {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  pointer-events: none;
+}
+.guia__marco {
+  width: min(62vw, 46vh);
+  aspect-ratio: 1 / 1.414;
+  border-radius: 12px;
+  --c: rgb(255 255 255 / .95);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / 36px 4px,
+    linear-gradient(var(--c), var(--c)) top left / 4px 36px,
+    linear-gradient(var(--c), var(--c)) top right / 36px 4px,
+    linear-gradient(var(--c), var(--c)) top right / 4px 36px,
+    linear-gradient(var(--c), var(--c)) bottom left / 36px 4px,
+    linear-gradient(var(--c), var(--c)) bottom left / 4px 36px,
+    linear-gradient(var(--c), var(--c)) bottom right / 36px 4px,
+    linear-gradient(var(--c), var(--c)) bottom right / 4px 36px;
+  background-repeat: no-repeat;
+  animation: latido 1.8s ease-in-out infinite;
+}
+.guia p {
+  margin: 0 20px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgb(15 23 42 / .7);
+  font-weight: 700;
+  text-align: center;
+}
+@keyframes latido {
+  50% { transform: scale(1.04); opacity: .7; }
+}
+
+/* Tarjeta de la revista detectada */
+.tarjeta-ar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 20;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgb(15 23 42 / .88);
+  border-top: 4px solid var(--rojo);
+  box-shadow: 0 10px 30px rgb(0 0 0 / .4);
+}
+.tarjeta-ar__texto { display: grid; gap: 2px; margin-bottom: 12px; }
+.tarjeta-ar__texto .etiqueta { color: #fca5a5; font-size: .85rem; }
+.tarjeta-ar__texto strong { font-size: 1.05rem; line-height: 1.3; }
+.tarjeta-ar__texto span:last-child { color: #cbd5e1; font-size: .9rem; }
+.tarjeta-ar__botones { display: flex; gap: 10px; }
+.tarjeta-ar__botones .boton { flex: 1; min-height: 50px; padding: 10px 12px; }
+
+/* Capas: cargando, error, elegir curso */
+.capa {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  background: linear-gradient(160deg, var(--azul-900), #0f172a 70%);
+  overflow-y: auto;
+}
+.capa__caja { width: min(440px, 100%); text-align: center; }
+.capa h2 { margin: 0 0 8px; font-size: 1.35rem; }
+.capa p { margin: 0 0 16px; color: #cbd5e1; }
+.capa .acciones { justify-content: center; }
+.capa__nota { font-size: .85rem; }
+.capa .rejilla-cursos .boton { background: var(--blanco); color: var(--azul-800); }
+
+.girador {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 5px solid rgb(255 255 255 / .2);
+  border-top-color: var(--blanco);
+  animation: giro .9s linear infinite;
+}
+@keyframes giro { to { transform: rotate(360deg); } }
+
+.progreso {
+  height: 8px;
+  margin: 0 auto 16px;
+  max-width: 260px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / .15);
+  overflow: hidden;
+}
+.progreso div { height: 100%; width: 0; background: var(--blanco); transition: width .2s; }
+
+/* Video en grande */
+.pantalla-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+.pantalla-completa video { flex: 1; width: 100%; min-height: 0; object-fit: contain; background: #000; }
+.pantalla-completa .boton {
+  margin: 10px auto max(12px, env(safe-area-inset-bottom));
+}

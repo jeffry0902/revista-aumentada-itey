@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Códigos QR · Revista Aumentada ITEY</title>
+  <link rel="icon" href="../img/favicon.png">
+  <link rel="stylesheet" href="../css/estilos.css">
+  <style>
+    .fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+    select { font: inherit; font-weight: 700; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); }
+    code { background: var(--azul-50); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+    .hoja { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+    .qr { padding: 14px; text-align: center; }
+    .qr svg { width: 100%; max-width: 180px; height: auto; display: block; margin: 0 auto 8px; }
+    .qr strong { display: block; color: var(--azul-900); }
+    .qr .titulo { display: block; font-size: .9rem; line-height: 1.3; }
+    .qr .url { display: block; font-size: .7rem; color: var(--texto-suave); word-break: break-all; margin-top: 4px; }
+    .qr .botones { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
+    .qr .botones .boton { min-height: 34px; padding: 4px 12px; font-size: .85rem; }
+    @media print {
+      .franja, .no-imprimir { display: none !important; }
+      body { background: #fff; font-size: 11pt; }
+      .contenido { padding: 0; max-width: none; }
+      .contenido h2 { margin: 0 0 4mm; font-size: 13pt; }
+      .hoja { grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+      .qr { box-shadow: none; border: .3mm dashed #94a3b8; border-radius: 3mm; break-inside: avoid; }
+      .qr svg { max-width: 42mm; }
+      .qr .botones { display: none; }
+      .seccion + .seccion { break-before: page; }
+    }
+  </style>
+</head>
+<body>
+  <header class="franja franja--compacta">
+    <div class="franja__contenido">
+      <img class="franja__logo" src="../img/logo-itey.png" alt="ITEY">
+      <div>
+        <h1>Códigos QR</h1>
+        <p>Herramienta del docente · para imprimir</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenido">
+    <div class="no-imprimir">
+      <p>Los códigos apuntan a <code id="url-base"></code>. Esa dirección sale de <code>"urlPublica"</code>
+        en <code>revistas.json</code>: si cambia, hay que volver a imprimirlos.</p>
+      <p>Imprime cada QR de al menos <strong>2,5 × 2,5 cm</strong>, sin recortar el borde blanco, y pruébalo con dos celulares antes de mandar a imprimir la revista.</p>
+      <div class="fila">
+        <label>Curso <select id="filtro"><option value="">Todos</option></select></label>
+        <button class="boton" type="button" onclick="print()">Imprimir</button>
+      </div>
+      <div id="error" class="aviso-error" hidden></div>
+    </div>
+
+    <section class="seccion">
+      <h2>QR de cada revista · abre su video</h2>
+      <div id="qr-revistas" class="hoja"></div>
+    </section>
+
+    <section class="seccion">
+      <h2>QR de la cámara por curso · para el stand</h2>
+      <div id="qr-cursos" class="hoja"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script type="module">
+    import { cargarDatos, cursosConRevistas, esc } from '../js/datos.js';
+
+    const $ = id => document.getElementById(id);
+    let cursos = [];
+    let base = '';
+
+    try {
+      const datos = await cargarDatos('../');
+      base = String(datos.urlPublica || '').trim();
+      if (!/^https:\/\//.test(base)) throw new Error('Falta "urlPublica" en revistas.json (debe empezar por https://).');
+      if (!base.endsWith('/')) base += '/';
+      $('url-base').textContent = base;
+      cursos = cursosConRevistas(datos);
+      $('filtro').insertAdjacentHTML('beforeend', cursos.map(c => `<option>${esc(c.id)}</option>`).join(''));
+      $('filtro').addEventListener('change', pintar);
+      pintar();
+    } catch (error) {
+      $('error').textContent = error.message;
+      $('error').hidden = false;
+    }
+
+    function pintar() {
+      const elegidos = cursos.filter(c => !$('filtro').value || c.id === $('filtro').value);
+      const revistas = elegidos.flatMap(c => c.revistas.map(r => ({ curso: c, r })));
+      $('qr-revistas').innerHTML = revistas.map(({ curso, r }) => tarjeta(
+        `${base}ver.html?id=${encodeURIComponent(r.id)}`, `qr-${r.id}`,
+        `${esc(curso.id)} · ${esc(r.equipo)}`, esc(r.titulo))).join('');
+      $('qr-cursos').innerHTML = elegidos.map(c => tarjeta(
+        `${base}ar.html?curso=${encodeURIComponent(c.id)}`, `qr-camara-${c.id}`,
+        `Cámara ${esc(c.id)}`, 'Apunta a las portadas de este curso')).join('');
+    }
+
+    function tarjeta(url, nombre, encabezado, titulo) {
+      return `
+        <div class="tarjeta qr">
+          ${svg(url)}
+          <strong>${encabezado}</strong>
+          <span class="titulo">${titulo}</span>
+          <span class="url">${esc(url)}</span>
+          <div class="botones">
+            <button class="boton boton--claro" type="button" data-url="${esc(url)}" data-nombre="${esc(nombre)}" data-tipo="png">PNG</button>
+            <button class="boton boton--claro" type="button" data-url="${esc(url)}" data-nombre="${esc(nombre)}" data-tipo="svg">SVG</button>
+          </div>
+        </div>`;
+    }
+
+    // Nivel de correccion M: aguanta un poco de brillo o mancha sin volverse muy denso.
+    function modulos(url) {
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      return qr;
+    }
+
+    function svg(url) {
+      const qr = modulos(url);
+      const n = qr.getModuleCount();
+      const margen = 4; // borde blanco que exige el estandar
+      let d = '';
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          if (qr.isDark(y, x)) d += `M${x + margen},${y + margen}h1v1h-1z`;
+        }
+      }
+      const lado = n + margen * 2;
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${lado} ${lado}" shape-rendering="crispEdges">` +
+        `<rect width="${lado}" height="${lado}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+    }
+
+    function png(url) {
+      const qr = modulos(url);
+      const n = qr.getModuleCount();
+      const margen = 4;
+      const escala = Math.ceil(1200 / (n + margen * 2)); // ~1200 px: nitido impreso a 10 cm
+      const lienzo = document.createElement('canvas');
+      lienzo.width = lienzo.height = (n + margen * 2) * escala;
+      const ctx = lienzo.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+      ctx.fillStyle = '#000';
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          if (qr.isDark(y, x)) ctx.fillRect((x + margen) * escala, (y + margen) * escala, escala, escala);
+        }
+      }
+      return new Promise(resolve => lienzo.toBlob(resolve, 'image/png'));
+    }
+
+    document.addEventListener('click', async evento => {
+      const boton = evento.target.closest('button[data-tipo]');
+      if (!boton) return;
+      const { url, nombre, tipo } = boton.dataset;
+      const archivo = tipo === 'png' ? await png(url) : new Blob([svg(url)], { type: 'image/svg+xml' });
+      const enlace = document.createElement('a');
+      enlace.href = URL.createObjectURL(archivo);
+      enlace.download = `${nombre}.${tipo}`;
+      enlace.click();
+      setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+    });
+  </script>
+</body>
+</html>

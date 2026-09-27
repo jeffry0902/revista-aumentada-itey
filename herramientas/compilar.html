@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compilar portadas · Revista Aumentada ITEY</title>
+  <link rel="icon" href="../img/favicon.png">
+  <link rel="stylesheet" href="../css/estilos.css">
+  <style>
+    .fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+    select { font: inherit; font-weight: 700; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); }
+    .objetivos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    .objetivos li { display: grid; grid-template-columns: 34px 70px 1fr; gap: 12px; align-items: center; padding: 10px 14px; }
+    .objetivos .indice { font-weight: 800; font-size: 1.2rem; color: var(--azul-800); text-align: center; }
+    .objetivos img { width: 70px; height: 96px; object-fit: contain; background: var(--azul-50); border-radius: 6px; }
+    .objetivos small { display: block; color: var(--texto-suave); }
+    .objetivos .mal { color: #b91c1c; font-weight: 700; }
+    .objetivos .ojo { color: #a16207; font-weight: 700; }
+    .progreso { height: 12px; border-radius: 999px; background: var(--azul-100); overflow: hidden; }
+    .progreso div { height: 100%; width: 0; background: var(--azul-800); transition: width .3s; }
+    .listo { padding: 16px; border-left: 5px solid #16a34a; }
+    code { background: var(--azul-50); padding: 1px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <header class="franja franja--compacta">
+    <div class="franja__contenido">
+      <img class="franja__logo" src="../img/logo-itey.png" alt="ITEY">
+      <div>
+        <h1>Compilar portadas</h1>
+        <p>Herramienta del docente · genera targets/CURSO.mind</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenido">
+    <p>Convierte las imágenes objetivo de un curso en el archivo que usa la cámara para reconocerlas.
+      Respeta el orden de <code>revistas.json</code>: la primera revista del curso es la portada 0, la segunda la 1, y así.
+      <strong>Si cambias, agregas o reordenas revistas de un curso, vuelve a compilar ese curso.</strong></p>
+
+    <div class="fila">
+      <label>Curso <select id="curso"></select></label>
+      <button id="compilar" class="boton" type="button" disabled>Compilar</button>
+    </div>
+
+    <div id="error" class="aviso-error" hidden></div>
+    <ol id="objetivos" class="objetivos"></ol>
+
+    <div id="estado" hidden>
+      <p id="estado-texto">Compilando…</p>
+      <div class="progreso"><div id="barra"></div></div>
+      <p><small>Deja esta pestaña a la vista hasta que termine: si cambias de pestaña o minimizas la ventana, el navegador pausa la compilación.
+        Usa el computador: en un celular tarda mucho más.</small></p>
+    </div>
+
+    <div id="listo" class="tarjeta listo" hidden>
+      <p id="listo-texto"></p>
+      <p><a id="descargar" class="boton" href="#">Descargar de nuevo</a></p>
+      <p>Pon el archivo en la carpeta <code>targets</code> del proyecto con el nombre <code id="nombre-archivo"></code>
+        (reemplaza el anterior si ya existía) y súbelo a GitHub.</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { Compiler } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
+    import { cargarDatos, cursosConRevistas, esc } from '../js/datos.js';
+
+    const $ = id => document.getElementById(id);
+    let cursos = [];
+    let imagenes = [];
+
+    try {
+      cursos = cursosConRevistas(await cargarDatos('../'));
+      if (!cursos.length) throw new Error('revistas.json no tiene revistas todavía.');
+      $('curso').innerHTML = cursos.map(c => `<option>${esc(c.id)}</option>`).join('');
+      $('curso').addEventListener('change', revisarCurso);
+      $('compilar').addEventListener('click', compilar);
+      revisarCurso();
+    } catch (error) {
+      mostrarError(error.message);
+    }
+
+    function cursoElegido() {
+      return cursos.find(c => c.id === $('curso').value);
+    }
+
+    // Carga las imagenes del curso y avisa de las que faltan o no sirven.
+    async function revisarCurso() {
+      const curso = cursoElegido();
+      $('error').hidden = true;
+      $('listo').hidden = true;
+      $('compilar').disabled = true;
+      $('compilar').textContent = `Compilar ${curso.id}`;
+      $('objetivos').innerHTML = curso.revistas.map((r, i) => `
+        <li class="tarjeta">
+          <span class="indice">${i}</span>
+          <img src="../${esc(r.objetivo)}" alt="">
+          <div><strong>${esc(r.id)} · ${esc(r.titulo)}</strong><small>${esc(r.objetivo)}</small><small data-info>Cargando…</small></div>
+        </li>`).join('');
+
+      const casillas = $('objetivos').querySelectorAll('[data-info]');
+      const resultados = await Promise.all(curso.revistas.map((r, i) => cargarImagen('../' + r.objetivo, casillas[i])));
+      if (cursoElegido() !== curso) return; // cambiaron de curso mientras cargaba
+      imagenes = resultados;
+      $('compilar').disabled = resultados.some(img => !img);
+    }
+
+    function cargarImagen(ruta, info) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const { naturalWidth: w, naturalHeight: h } = img;
+          let nota = `${w} × ${h} px`;
+          if (Math.min(w, h) < 480) nota += ' · <span class="ojo">muy pequeña: se reconocerá mal</span>';
+          else if (Math.max(w, h) > 2000) nota += ' · <span class="ojo">muy grande: redúcela a unos 1000 px de ancho</span>';
+          info.innerHTML = nota;
+          resolve(img);
+        };
+        img.onerror = () => {
+          info.innerHTML = '<span class="mal">No se encontró la imagen. Revisa el nombre y la carpeta.</span>';
+          resolve(null);
+        };
+        img.src = ruta;
+      });
+    }
+
+    async function compilar() {
+      const curso = cursoElegido();
+      const inicio = performance.now();
+      $('compilar').disabled = true;
+      $('curso').disabled = true;
+      $('listo').hidden = true;
+      $('estado').hidden = false;
+      $('estado-texto').textContent = `Compilando ${curso.revistas.length} portadas de ${curso.id}…`;
+      $('barra').style.width = '0';
+
+      try {
+        const compilador = new Compiler();
+        await compilador.compileImageTargets(imagenes, avance => {
+          $('barra').style.width = Math.min(100, avance).toFixed(0) + '%';
+        });
+        const datos = await compilador.exportData();
+        const archivo = new Blob([datos], { type: 'application/octet-stream' });
+        const nombre = `${curso.id}.mind`;
+        const enlace = $('descargar');
+        if (enlace.href.startsWith('blob:')) URL.revokeObjectURL(enlace.href);
+        enlace.href = URL.createObjectURL(archivo);
+        enlace.download = nombre;
+        enlace.click();
+
+        const segundos = Math.round((performance.now() - inicio) / 1000);
+        $('listo-texto').innerHTML = `<strong>Listo: ${esc(nombre)}</strong> · ${curso.revistas.length} portadas · ` +
+          `${(archivo.size / 1048576).toFixed(2)} MB · ${segundos} s. Se descargó a tu carpeta de Descargas.`;
+        $('nombre-archivo').textContent = nombre;
+        $('listo').hidden = false;
+      } catch (error) {
+        mostrarError('No se pudo compilar: ' + error.message);
+      } finally {
+        $('estado').hidden = true;
+        $('compilar').disabled = false;
+        $('curso').disabled = false;
+      }
+    }
+
+    function mostrarError(texto) {
+      $('error').textContent = texto;
+      $('error').hidden = false;
+    }
+  </script>
+</body>
+</html>

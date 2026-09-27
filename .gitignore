@@ -1,0 +1,12 @@
+# Certificado del servidor de prueba (herramientas/servidor-https.mjs)
+herramientas/.cert/
+
+# Videos sin comprimir: se quedan en el computador, a GitHub solo van los de videos/
+originales/
+
+# Herramientas locales de Claude Code
+.claude/
+
+Thumbs.db
+desktop.ini
+.DS_Store
