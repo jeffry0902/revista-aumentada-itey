@@ -18,6 +18,12 @@
           "curso": "11A",
           "equipo": "Equipo de prueba 2",
           "titulo": "Ondas y sonido: ¿cómo viaja la voz por el aire?"
+        },
+        {
+          "id": "ejemplo",
+          "curso": "Ejemplo",
+          "equipo": "Revista de 11H (2024)",
+          "titulo": "Económico, ¿a qué costo? El impacto oculto de las aplicaciones de consumo masivo"
         }
       ]
     }
