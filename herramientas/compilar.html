@@ -28,18 +28,18 @@
       <img class="franja__logo" src="../img/logo-itey.png" alt="ITEY">
       <div>
         <h1>Compilar portadas</h1>
-        <p>Herramienta del docente · genera targets/CURSO.mind</p>
+        <p>Herramienta del docente · genera el archivo .mind de la cámara</p>
       </div>
     </div>
   </header>
 
   <main class="contenido">
-    <p>Convierte las imágenes objetivo de un curso en el archivo que usa la cámara para reconocerlas.
-      Respeta el orden de <code>revistas.json</code>: la primera revista del curso es la portada 0, la segunda la 1, y así.
-      <strong>Si cambias, agregas o reordenas revistas de un curso, vuelve a compilar ese curso.</strong></p>
+    <p>Convierte las portadas de una cámara en el archivo que usa para reconocerlas.
+      Respeta el orden de <code>revistas.json</code>: la primera revista de la cámara es la portada 0, la segunda la 1, y así.
+      <strong>Si cambias, agregas o reordenas revistas, vuelve a compilar.</strong></p>
 
     <div class="fila">
-      <label>Curso <select id="curso"></select></label>
+      <label>Cámara <select id="camara"></select></label>
       <button id="compilar" class="boton" type="button" disabled>Compilar</button>
     </div>
 
@@ -63,44 +63,44 @@
 
   <script type="module">
     import { Compiler } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
-    import { cargarDatos, cursosConRevistas, esc } from '../js/datos.js';
+    import { cargarDatos, camarasConRevistas, nombreCamara, rutaTargets, esc } from '../js/datos.js';
 
     const $ = id => document.getElementById(id);
-    let cursos = [];
+    let camaras = [];
     let imagenes = [];
 
     try {
-      cursos = cursosConRevistas(await cargarDatos('../'));
-      if (!cursos.length) throw new Error('revistas.json no tiene revistas todavía.');
-      $('curso').innerHTML = cursos.map(c => `<option>${esc(c.id)}</option>`).join('');
-      $('curso').addEventListener('change', revisarCurso);
+      camaras = camarasConRevistas(await cargarDatos('../'));
+      if (!camaras.length) throw new Error('revistas.json no tiene revistas todavía.');
+      $('camara').innerHTML = camaras.map(c => `<option value="${esc(c.id)}">${esc(nombreCamara(c))}</option>`).join('');
+      $('camara').addEventListener('change', revisarCamara);
       $('compilar').addEventListener('click', compilar);
-      revisarCurso();
+      revisarCamara();
     } catch (error) {
       mostrarError(error.message);
     }
 
-    function cursoElegido() {
-      return cursos.find(c => c.id === $('curso').value);
+    function camaraElegida() {
+      return camaras.find(c => c.id === $('camara').value);
     }
 
-    // Carga las imagenes del curso y avisa de las que faltan o no sirven.
-    async function revisarCurso() {
-      const curso = cursoElegido();
+    // Carga las portadas de la camara y avisa de las que faltan o no sirven.
+    async function revisarCamara() {
+      const camara = camaraElegida();
       $('error').hidden = true;
       $('listo').hidden = true;
       $('compilar').disabled = true;
-      $('compilar').textContent = `Compilar ${curso.id}`;
-      $('objetivos').innerHTML = curso.revistas.map((r, i) => `
+      $('compilar').textContent = `Compilar ${nombreCamara(camara)}`;
+      $('objetivos').innerHTML = camara.revistas.map((r, i) => `
         <li class="tarjeta">
           <span class="indice">${i}</span>
           <img src="../${esc(r.objetivo)}" alt="">
-          <div><strong>${esc(r.id)} · ${esc(r.titulo)}</strong><small>${esc(r.objetivo)}</small><small data-info>Cargando…</small></div>
+          <div><strong>${esc(r.curso)} · ${esc(r.titulo)}</strong><small>${esc(r.objetivo)}</small><small data-info>Cargando…</small></div>
         </li>`).join('');
 
       const casillas = $('objetivos').querySelectorAll('[data-info]');
-      const resultados = await Promise.all(curso.revistas.map((r, i) => cargarImagen('../' + r.objetivo, casillas[i])));
-      if (cursoElegido() !== curso) return; // cambiaron de curso mientras cargaba
+      const resultados = await Promise.all(camara.revistas.map((r, i) => cargarImagen('../' + r.objetivo, casillas[i])));
+      if (camaraElegida() !== camara) return; // cambiaron de camara mientras cargaba
       imagenes = resultados;
       $('compilar').disabled = resultados.some(img => !img);
     }
@@ -117,7 +117,7 @@
           resolve(img);
         };
         img.onerror = () => {
-          info.innerHTML = '<span class="mal">No se encontró la imagen. Revisa el nombre y la carpeta.</span>';
+          info.innerHTML = '<span class="mal">No se encontró portada.jpg en esa carpeta.</span>';
           resolve(null);
         };
         img.src = ruta;
@@ -125,13 +125,13 @@
     }
 
     async function compilar() {
-      const curso = cursoElegido();
+      const camara = camaraElegida();
       const inicio = performance.now();
       $('compilar').disabled = true;
-      $('curso').disabled = true;
+      $('camara').disabled = true;
       $('listo').hidden = true;
       $('estado').hidden = false;
-      $('estado-texto').textContent = `Compilando ${curso.revistas.length} portadas de ${curso.id}…`;
+      $('estado-texto').textContent = `Compilando ${camara.revistas.length} portadas…`;
       $('barra').style.width = '0';
 
       try {
@@ -141,7 +141,7 @@
         });
         const datos = await compilador.exportData();
         const archivo = new Blob([datos], { type: 'application/octet-stream' });
-        const nombre = `${curso.id}.mind`;
+        const nombre = rutaTargets(camara.id).split('/').pop();
         const enlace = $('descargar');
         if (enlace.href.startsWith('blob:')) URL.revokeObjectURL(enlace.href);
         enlace.href = URL.createObjectURL(archivo);
@@ -149,7 +149,7 @@
         enlace.click();
 
         const segundos = Math.round((performance.now() - inicio) / 1000);
-        $('listo-texto').innerHTML = `<strong>Listo: ${esc(nombre)}</strong> · ${curso.revistas.length} portadas · ` +
+        $('listo-texto').innerHTML = `<strong>Listo: ${esc(nombre)}</strong> · ${camara.revistas.length} portadas · ` +
           `${(archivo.size / 1048576).toFixed(2)} MB · ${segundos} s. Se descargó a tu carpeta de Descargas.`;
         $('nombre-archivo').textContent = nombre;
         $('listo').hidden = false;
@@ -158,7 +158,7 @@
       } finally {
         $('estado').hidden = true;
         $('compilar').disabled = false;
-        $('curso').disabled = false;
+        $('camara').disabled = false;
       }
     }
 

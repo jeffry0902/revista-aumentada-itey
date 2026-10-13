@@ -15,7 +15,7 @@ try {
   if (!encontrado) {
     mostrarNoEncontrada();
   } else {
-    mostrar(encontrado.curso, encontrado.revista);
+    mostrar(encontrado.camara, encontrado.revista);
     const origen = parametros.get('desde') === 'lista' ? 'lista' : 'qr';
     contarVisita(`/video/${encontrado.revista.id}`, `Video · ${encontrado.revista.id}`);
     contarEvento(`${origen}-${encontrado.revista.id}`, `${origen.toUpperCase()} · ${encontrado.revista.id} · ${encontrado.revista.titulo}`);
@@ -24,10 +24,10 @@ try {
   contenido.innerHTML = `<p class="aviso-error">${esc(error.message)}</p>`;
 }
 
-function mostrar(curso, revista) {
+function mostrar(camara, revista) {
   document.title = `${revista.titulo} · Revista Aumentada ITEY`;
   contenido.innerHTML = `
-    <p class="etiqueta">${esc(curso.id)} · ${esc(revista.equipo)}</p>
+    <p class="etiqueta">${esc(revista.curso)} · ${esc(revista.equipo)}</p>
     <h2 class="titulo-revista">${esc(revista.titulo)}</h2>
     <div class="video-marco">
       <video id="video" src="${esc(revista.video)}" controls playsinline webkit-playsinline preload="metadata"></video>
@@ -39,7 +39,7 @@ function mostrar(curso, revista) {
       </button>
     </div>
     <div class="acciones">
-      <a class="boton" href="ar.html?curso=${encodeURIComponent(curso.id)}">Abrir la cámara de ${esc(curso.id)}</a>
+      <a class="boton" href="ar.html?camara=${encodeURIComponent(camara.id)}">Abrir la cámara</a>
       <a class="boton boton--borde" href="./#lista">Ver todas las revistas</a>
     </div>`;
 

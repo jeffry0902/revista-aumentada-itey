@@ -1,8 +1,8 @@
-import { cargarDatos, cursosConRevistas, esc } from './datos.js';
+import { cargarDatos, camarasConRevistas, revistasPorCurso, nombreCamara, esc } from './datos.js';
 import { iniciarContador, contarVisita } from './contador.js';
 
 const contenedor = document.getElementById('cursos');
-const dialogo = document.getElementById('elegir-curso');
+const dialogo = document.getElementById('elegir-camara');
 const botonCamara = document.getElementById('abrir-camara');
 
 try {
@@ -11,13 +11,13 @@ try {
   contarVisita('/inicio', 'Inicio');
   if (datos.evento) document.getElementById('evento').textContent = datos.evento;
 
-  const cursos = cursosConRevistas(datos);
-  pintarCursos(cursos);
-  pintarDialogo(cursos);
+  const camaras = camarasConRevistas(datos);
+  pintarCursos(revistasPorCurso(datos), camaras.length > 1);
+  pintarDialogo(camaras);
 
   botonCamara.addEventListener('click', () => {
-    // Con un solo curso no hay nada que elegir.
-    if (cursos.length === 1) location.href = urlCamara(cursos[0].id);
+    // Con una sola camara no hay nada que elegir.
+    if (camaras.length === 1) location.href = urlCamara(camaras[0].id);
     else dialogo.showModal();
   });
 } catch (error) {
@@ -29,23 +29,24 @@ document.getElementById('cerrar-dialogo').addEventListener('click', () => dialog
 // Tocar fuera del cuadro lo cierra.
 dialogo.addEventListener('click', e => { if (e.target === dialogo) dialogo.close(); });
 
-function urlCamara(cursoId) {
-  return `ar.html?curso=${encodeURIComponent(cursoId)}`;
+function urlCamara(camaraId) {
+  return `ar.html?camara=${encodeURIComponent(camaraId)}`;
 }
 
-function pintarCursos(cursos) {
-  if (!cursos.length) {
+// variasCamaras: si hay mas de una, cada curso lleva el boton de la suya.
+function pintarCursos(grupos, variasCamaras) {
+  if (!grupos.length) {
     contenedor.innerHTML = '<p>Todavía no hay revistas publicadas.</p>';
     return;
   }
-  contenedor.innerHTML = cursos.map(curso => `
+  contenedor.innerHTML = grupos.map(({ curso, revistas }) => `
     <section class="tarjeta curso">
       <div class="curso__cabeza">
-        <h3 class="curso__nombre">${esc(curso.id)}</h3>
-        <a class="boton" href="${urlCamara(curso.id)}">Abrir cámara ${esc(curso.id)}</a>
+        <h3 class="curso__nombre">${esc(curso)}</h3>
+        ${variasCamaras ? `<a class="boton" href="${urlCamara(revistas[0].camara.id)}">Abrir cámara</a>` : ''}
       </div>
       <ul class="revistas">
-        ${curso.revistas.map(r => `
+        ${revistas.map(({ revista: r }) => `
           <li>
             <a href="ver.html?id=${encodeURIComponent(r.id)}&desde=lista">
               <div><strong>${esc(r.titulo)}</strong><span>${esc(r.equipo)}</span></div>
@@ -56,8 +57,8 @@ function pintarCursos(cursos) {
     </section>`).join('');
 }
 
-function pintarDialogo(cursos) {
-  document.getElementById('rejilla-cursos').innerHTML = cursos
-    .map(c => `<a class="boton" href="${urlCamara(c.id)}">${esc(c.id)}</a>`)
+function pintarDialogo(camaras) {
+  document.getElementById('rejilla-cursos').innerHTML = camaras
+    .map(c => `<a class="boton" href="${urlCamara(c.id)}">${esc(nombreCamara(c))}</a>`)
     .join('');
 }

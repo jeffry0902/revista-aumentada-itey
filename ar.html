@@ -13,13 +13,13 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 </head>
 <body class="pagina-ar">
-  <!-- La escena de A-Frame la crea js/ar.js cuando sabe que curso cargar. -->
+  <!-- La escena de A-Frame la crea js/ar.js cuando sabe que camara cargar. -->
 
   <div class="barra-ar">
     <a class="barra-ar__volver" href="./">‹ Inicio</a>
-    <label class="barra-ar__curso" id="etiqueta-curso" hidden>
-      Curso
-      <select id="selector-curso" aria-label="Cambiar de curso"></select>
+    <label class="barra-ar__curso" id="etiqueta-camara" hidden>
+      Cámara
+      <select id="selector-camara" aria-label="Cambiar de cámara"></select>
     </label>
   </div>
 
@@ -70,9 +70,9 @@
 
   <div id="elegir" class="capa" hidden>
     <div class="capa__caja">
-      <h2>¿De qué curso es la revista?</h2>
-      <p>Lo encuentras en la portada.</p>
-      <div id="rejilla-cursos" class="rejilla-cursos"></div>
+      <h2>Elige la cámara</h2>
+      <p>Mira el curso en la portada de la revista.</p>
+      <div id="rejilla-camaras" class="rejilla-cursos"></div>
     </div>
   </div>
 
@@ -81,7 +81,7 @@
     <button id="cerrar-grande" class="boton boton--blanco" type="button">‹ Volver a la cámara</button>
   </div>
 
-  <!-- Un solo reproductor para todas las revistas del curso: se descarga solo
+  <!-- Un solo reproductor para todas las revistas de la camara: se descarga solo
        el video que se esta viendo, y el permiso de sonido se da una vez. -->
   <div hidden>
     <video id="video-ar" playsinline webkit-playsinline muted loop preload="none"></video>

@@ -2,31 +2,24 @@
   "evento": "Feria de la Ciencia 2026",
   "urlPublica": "https://jeffry0902.github.io/revista-aumentada-itey/",
   "goatcounter": "",
-  "cursos": [
+  "camaras": [
     {
-      "id": "11A",
+      "id": "11",
+      "nombre": "Grado 11°",
       "revistas": [
         {
           "id": "11A-01",
+          "curso": "11A",
           "equipo": "Equipo de prueba 1",
-          "titulo": "El movimiento: tiro parabólico en la cancha del colegio",
-          "objetivo": "objetivos/11A/01.jpg",
-          "video": "videos/11A/01.mp4"
+          "titulo": "El movimiento: tiro parabólico en la cancha del colegio"
         },
         {
           "id": "11A-02",
+          "curso": "11A",
           "equipo": "Equipo de prueba 2",
-          "titulo": "Ondas y sonido: ¿cómo viaja la voz por el aire?",
-          "objetivo": "objetivos/11A/02.jpg",
-          "video": "videos/11A/02-ondas-y-sonido.mp4"
+          "titulo": "Ondas y sonido: ¿cómo viaja la voz por el aire?"
         }
       ]
-    },
-    { "id": "11C", "revistas": [] },
-    { "id": "11D", "revistas": [] },
-    { "id": "11E", "revistas": [] },
-    { "id": "11F", "revistas": [] },
-    { "id": "11G", "revistas": [] },
-    { "id": "11I", "revistas": [] }
+    }
   ]
 }

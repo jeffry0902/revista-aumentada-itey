@@ -1,9 +1,10 @@
-// Camara con realidad aumentada para UN curso: ar.html?curso=11A
+// Camara con realidad aumentada: ar.html?camara=11
 //
-// Carga targets/<curso>.mind (todas las portadas del curso), crea una ancla por
-// revista en el orden de revistas.json y reproduce el video de la que se detecte.
+// Carga targets/<camara>.mind (todas las portadas de esa camara), crea una ancla
+// por revista en el orden de revistas.json y reproduce el video de la que se detecte.
+// Con una sola camara en revistas.json, ar.html sin parametros abre esa.
 
-import { cargarDatos, cursosConRevistas, buscarCurso, rutaTargets, esc } from './datos.js';
+import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTargets, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
 
 const $ = id => document.getElementById(id);
@@ -14,7 +15,7 @@ const videoGrande = $('video-grande');
 // pausarse: en celulares modestos el anclaje parpadea y el video tartamudearia.
 const ESPERA_PAUSA_MS = 1500;
 
-let curso = null;
+let camara = null;
 let escena = null;
 let sistema = null;      // mindar-image-system, disponible despues de arReady
 let dimensiones = [];    // [ancho, alto] de cada portada, para ajustar el video
@@ -35,13 +36,14 @@ async function iniciar() {
   }
   iniciarContador(datos.goatcounter);
 
-  const cursos = cursosConRevistas(datos);
-  curso = buscarCurso(datos, new URLSearchParams(location.search).get('curso'));
-  if (!curso || !curso.revistas.length) return elegirCurso(cursos);
+  const camaras = camarasConRevistas(datos);
+  const pedida = new URLSearchParams(location.search).get('camara');
+  camara = pedida ? buscarCamara(datos, pedida) : (camaras.length === 1 ? camaras[0] : null);
+  if (!camara || !camara.revistas.length) return elegirCamara(camaras);
 
-  pintarSelector(cursos);
-  contarVisita(`/camara/${curso.id}`, `Cámara ${curso.id}`);
-  $('guia-texto').textContent = `Apunta a la portada de una revista de ${curso.id}`;
+  pintarSelector(camaras);
+  contarVisita(`/camara/${camara.id}`, `Cámara ${nombreCamara(camara)}`);
+  $('guia-texto').textContent = `Apunta a la portada de una revista de ${nombreCamara(camara)}`;
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return mostrarError('Este navegador no puede usar la cámara',
@@ -51,9 +53,9 @@ async function iniciar() {
 
   let targets;
   try {
-    targets = await descargarTargets(rutaTargets(curso.id));
+    targets = await descargarTargets(rutaTargets(camara.id));
   } catch (error) {
-    return mostrarError(`La cámara de ${curso.id} todavía no está lista`,
+    return mostrarError('La cámara todavía no está lista',
       `Puedes ver los videos desde la lista. (${error.message})`);
   }
   crearEscena(targets);
@@ -62,7 +64,7 @@ async function iniciar() {
 // Descarga el .mind con barra de progreso y lo entrega como blob: asi se ve el
 // avance con wifi lento y un archivo que falta se explica en vez de colgarse.
 async function descargarTargets(ruta) {
-  textoCargando(`Descargando las portadas de ${curso.id}…`);
+  textoCargando('Descargando las portadas…');
   let respuesta;
   try {
     respuesta = await fetch(ruta);
@@ -100,13 +102,13 @@ function crearEscena(targets) {
   escena.setAttribute('device-orientation-permission-ui', 'enabled: false');
   escena.setAttribute('loading-screen', 'enabled: false');
 
-  const camara = document.createElement('a-camera');
-  camara.setAttribute('position', '0 0 0');
-  camara.setAttribute('look-controls', 'enabled: false');
-  camara.setAttribute('wasd-controls', 'enabled: false');
-  escena.appendChild(camara);
+  const camara3d = document.createElement('a-camera');
+  camara3d.setAttribute('position', '0 0 0');
+  camara3d.setAttribute('look-controls', 'enabled: false');
+  camara3d.setAttribute('wasd-controls', 'enabled: false');
+  escena.appendChild(camara3d);
 
-  curso.revistas.forEach((revista, i) => {
+  camara.revistas.forEach((revista, i) => {
     const ancla = document.createElement('a-entity');
     ancla.setAttribute('mindar-image-target', `targetIndex: ${i}`);
     const plano = document.createElement('a-plane');
@@ -139,10 +141,10 @@ function alEstarListo() {
   $('guia').hidden = false;
 
   // Error tipico al preparar la feria: el .mind no corresponde al JSON.
-  if (dimensiones.length && dimensiones.length !== curso.revistas.length) {
+  if (dimensiones.length && dimensiones.length !== camara.revistas.length) {
     const aviso = $('aviso-tecnico');
-    aviso.textContent = `Aviso para el docente: targets/${curso.id}.mind tiene ${dimensiones.length} portadas, ` +
-      `pero revistas.json tiene ${curso.revistas.length} revistas en ${curso.id}. Vuelve a compilar el curso.`;
+    aviso.textContent = `Aviso para el docente: ${rutaTargets(camara.id)} tiene ${dimensiones.length} portadas, ` +
+      `pero revistas.json tiene ${camara.revistas.length} revistas en la cámara ${nombreCamara(camara)}. Vuelve a compilarla.`;
     aviso.hidden = false;
   }
 }
@@ -156,7 +158,7 @@ function alEncontrar(i) {
   pintarTarjeta(i);
   if (actual !== i) cargarVideo(i);
   reproducir();
-  const revista = curso.revistas[i];
+  const revista = camara.revistas[i];
   contarEvento(`ar-${revista.id}`, `AR · ${revista.id} · ${revista.titulo}`);
 }
 
@@ -173,7 +175,7 @@ function alPerder(i) {
 function cargarVideo(i) {
   actual = i;
   planos.forEach(p => p.setAttribute('visible', 'false'));
-  videoAR.src = curso.revistas[i].video;
+  videoAR.src = camara.revistas[i].video;
 }
 
 // El plano se muestra cuando ya hay imagen, para no dejar ver el ultimo cuadro
@@ -236,7 +238,7 @@ function pintarBotonSonido() {
 
 $('boton-ver').addEventListener('click', () => {
   if (actual === -1) return;
-  const revista = curso.revistas[actual];
+  const revista = camara.revistas[actual];
   const segundo = videoAR.currentTime || 0;
   videoAR.pause();
   if (sistema) sistema.pause(); // libera el procesador mientras se ve el video
@@ -270,39 +272,40 @@ document.addEventListener('visibilitychange', () => {
 // Un .mind danado o de otra version de MindAR revienta dentro de la libreria
 // sin avisar; mientras la capa de carga siga a la vista, lo explicamos.
 window.addEventListener('unhandledrejection', () => {
-  if ($('cargando').hidden || !curso) return;
-  mostrarError(`No se pudo preparar la cámara de ${curso.id}`,
-    `El archivo targets/${curso.id}.mind está dañado o no es de MindAR 1.2.5. Hay que volver a compilarlo.`);
+  if ($('cargando').hidden || !camara) return;
+  mostrarError('No se pudo preparar la cámara',
+    `El archivo ${rutaTargets(camara.id)} está dañado o no es de MindAR 1.2.5. Hay que volver a compilarlo.`);
 });
 
 // ---------- Interfaz ----------
 
 function pintarTarjeta(i) {
-  const revista = curso.revistas[i];
-  $('tarjeta-curso').textContent = curso.id;
+  const revista = camara.revistas[i];
+  $('tarjeta-curso').textContent = revista.curso;
   $('tarjeta-titulo').textContent = revista.titulo;
   $('tarjeta-equipo').textContent = revista.equipo;
   $('tarjeta-ar').hidden = false;
   pintarBotonSonido();
 }
 
-function pintarSelector(cursos) {
-  if (cursos.length < 2) return;
-  const selector = $('selector-curso');
-  selector.innerHTML = cursos
-    .map(c => `<option value="${esc(c.id)}"${c === curso ? ' selected' : ''}>${esc(c.id)}</option>`)
+// Solo aparece si revistas.json tiene mas de una camara.
+function pintarSelector(camaras) {
+  if (camaras.length < 2) return;
+  const selector = $('selector-camara');
+  selector.innerHTML = camaras
+    .map(c => `<option value="${esc(c.id)}"${c === camara ? ' selected' : ''}>${esc(nombreCamara(c))}</option>`)
     .join('');
   selector.addEventListener('change', () => {
-    location.href = `ar.html?curso=${encodeURIComponent(selector.value)}`;
+    location.href = `ar.html?camara=${encodeURIComponent(selector.value)}`;
   });
-  $('etiqueta-curso').hidden = false;
+  $('etiqueta-camara').hidden = false;
 }
 
-function elegirCurso(cursos) {
+function elegirCamara(camaras) {
   $('cargando').hidden = true;
-  if (!cursos.length) return mostrarError('Todavía no hay revistas', 'Vuelve a intentarlo más tarde.');
-  $('rejilla-cursos').innerHTML = cursos
-    .map(c => `<a class="boton" href="ar.html?curso=${encodeURIComponent(c.id)}">${esc(c.id)}</a>`)
+  if (!camaras.length) return mostrarError('Todavía no hay revistas', 'Vuelve a intentarlo más tarde.');
+  $('rejilla-camaras').innerHTML = camaras
+    .map(c => `<a class="boton" href="ar.html?camara=${encodeURIComponent(c.id)}">${esc(nombreCamara(c))}</a>`)
     .join('');
   $('elegir').hidden = false;
 }

@@ -60,17 +60,18 @@
     </section>
 
     <section class="seccion">
-      <h2>QR de la cámara por curso · para el stand</h2>
-      <div id="qr-cursos" class="hoja"></div>
+      <h2>QR de la cámara · para los carteles de los stands</h2>
+      <div id="qr-camaras" class="hoja"></div>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
   <script type="module">
-    import { cargarDatos, cursosConRevistas, esc } from '../js/datos.js';
+    import { cargarDatos, camarasConRevistas, revistasPorCurso, nombreCamara, esc } from '../js/datos.js';
 
     const $ = id => document.getElementById(id);
-    let cursos = [];
+    let camaras = [];
+    let grupos = [];
     let base = '';
 
     try {
@@ -79,8 +80,9 @@
       if (!/^https:\/\//.test(base)) throw new Error('Falta "urlPublica" en revistas.json (debe empezar por https://).');
       if (!base.endsWith('/')) base += '/';
       $('url-base').textContent = base;
-      cursos = cursosConRevistas(datos);
-      $('filtro').insertAdjacentHTML('beforeend', cursos.map(c => `<option>${esc(c.id)}</option>`).join(''));
+      camaras = camarasConRevistas(datos);
+      grupos = revistasPorCurso(datos);
+      $('filtro').insertAdjacentHTML('beforeend', grupos.map(g => `<option>${esc(g.curso)}</option>`).join(''));
       $('filtro').addEventListener('change', pintar);
       pintar();
     } catch (error) {
@@ -89,14 +91,14 @@
     }
 
     function pintar() {
-      const elegidos = cursos.filter(c => !$('filtro').value || c.id === $('filtro').value);
-      const revistas = elegidos.flatMap(c => c.revistas.map(r => ({ curso: c, r })));
-      $('qr-revistas').innerHTML = revistas.map(({ curso, r }) => tarjeta(
+      const filtro = $('filtro').value;
+      const revistas = grupos.filter(g => !filtro || g.curso === filtro).flatMap(g => g.revistas.map(x => x.revista));
+      $('qr-revistas').innerHTML = revistas.map(r => tarjeta(
         `${base}ver.html?id=${encodeURIComponent(r.id)}`, `qr-${r.id}`,
-        `${esc(curso.id)} · ${esc(r.equipo)}`, esc(r.titulo))).join('');
-      $('qr-cursos').innerHTML = elegidos.map(c => tarjeta(
-        `${base}ar.html?curso=${encodeURIComponent(c.id)}`, `qr-camara-${c.id}`,
-        `Cámara ${esc(c.id)}`, 'Apunta a las portadas de este curso')).join('');
+        `${esc(r.curso)} · ${esc(r.equipo)}`, esc(r.titulo))).join('');
+      $('qr-camaras').innerHTML = camaras.map(c => tarjeta(
+        `${base}ar.html?camara=${encodeURIComponent(c.id)}`, `qr-camara-${c.id}`,
+        `Cámara · ${esc(nombreCamara(c))}`, 'Reconoce todas las revistas de la feria')).join('');
     }
 
     function tarjeta(url, nombre, encabezado, titulo) {

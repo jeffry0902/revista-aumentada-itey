@@ -15,7 +15,7 @@ export function iniciarContador(codigo) {
   script.async = true;
   script.src = 'https://gc.zgo.at/count.js';
   script.dataset.goatcounter = `https://${codigo}.goatcounter.com/count`;
-  // Contamos a mano para que la parte ?curso=... no parta las cifras.
+  // Contamos a mano para que la parte ?camara=... o ?id=... no parta las cifras.
   script.dataset.goatcounterSettings = '{"no_onload": true}';
   script.onload = () => {
     const cola = pendientes;

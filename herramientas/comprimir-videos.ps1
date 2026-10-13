@@ -6,12 +6,18 @@
   Tambien borra los metadatos del celular (ubicacion GPS, modelo del equipo)
   y normaliza el nombre del archivo: minusculas, sin tildes ni espacios.
 
-  Uso (desde la carpeta del proyecto):
-    powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "C:\ruta\originales\11A" -Salida .\videos\11A
+  Uso para una revista (desde la carpeta del proyecto): la carpeta que entrego
+  el equipo, con un solo video adentro, queda como revistas\<id>\video.mp4
+    powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "E:\ruta\11B - Los Newtonianos" -Salida .\revistas\11B-01 -Nombre video
+
+  Uso en lote (sin -Nombre): comprime todos los videos de una carpeta y conserva sus nombres.
+    powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "E:\ruta\originales" -Salida "E:\ruta\comprimidos"
 #>
 param(
   [Parameter(Mandatory = $true)] [string]$Entrada,
   [Parameter(Mandatory = $true)] [string]$Salida,
+  # Nombre fijo para el archivo de salida (sin extension). Exige un solo video en -Entrada.
+  [string]$Nombre = '',
   # 600 kbit/s de video + 64 kbit/s de audio = ~7,5 MB en 90 s.
   [int]$KbpsVideo = 600
 )
@@ -41,6 +47,10 @@ if (-not $videos) {
   Write-Host "No hay videos en $Entrada" -ForegroundColor Yellow
   exit 0
 }
+if ($Nombre -and @($videos).Count -gt 1) {
+  Write-Host "Con -Nombre la carpeta debe tener un solo video, y $Entrada tiene $(@($videos).Count)." -ForegroundColor Red
+  exit 1
+}
 
 # Lado corto a 720 px sin agrandar videos mas pequenos; -2 mantiene la proporcion con ancho/alto par.
 $escala = "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)'"
@@ -49,7 +59,8 @@ $bufsize = "$($KbpsVideo * 2)k"
 
 $resumen = @()
 foreach ($v in $videos) {
-  $destino = Join-Path $Salida ((Limpiar-Nombre $v.BaseName) + '.mp4')
+  $base = if ($Nombre) { $Nombre } else { Limpiar-Nombre $v.BaseName }
+  $destino = Join-Path $Salida ($base + '.mp4')
   Write-Host "`n>> $($v.Name)  ->  $destino" -ForegroundColor Cyan
 
   & ffmpeg -hide_banner -loglevel error -stats -y -i $v.FullName `

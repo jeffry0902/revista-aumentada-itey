@@ -1,11 +1,18 @@
 // Lee y valida revistas.json. Es lo unico que se edita para agregar revistas,
 // asi que los errores se explican en palabras y con el dato que falla.
 //
+// Una "camara" es un grupo de revistas que se reconocen juntas: todas sus
+// portadas van en un solo archivo, targets/<id de la camara>.mind.
+// Hoy hay una sola camara para todo el grado 11°; si algun dia pesa demasiado,
+// se parte en dos agregando otra camara en revistas.json.
+//
 // Convenciones que NO van en el JSON:
-//   - el archivo de reconocimiento de un curso es targets/<curso>.mind
-//   - el targetIndex de cada revista es su posicion dentro del curso (0, 1, 2...)
+//   - cada revista tiene su carpeta: revistas/<id>/portada.jpg y revistas/<id>/video.mp4
+//   - el archivo de reconocimiento de una camara es targets/<id de la camara>.mind
+//   - el targetIndex de cada revista es su posicion dentro de la camara (0, 1, 2...)
 
-const CAMPOS = ['id', 'equipo', 'titulo', 'objetivo', 'video'];
+const CAMPOS = ['id', 'curso', 'equipo', 'titulo'];
+const SEGURO = /^[A-Za-z0-9-]+$/; // va dentro de direcciones y nombres de archivo
 
 // base: prefijo para llegar a la raiz del sitio ('' desde la raiz, '../' desde herramientas/).
 export async function cargarDatos(base = '') {
@@ -24,20 +31,28 @@ export async function cargarDatos(base = '') {
     throw new Error('revistas.json tiene un error de formato (una coma o comilla de más o de menos). ' + e.message);
   }
   validar(datos);
+  for (const camara of datos.camaras) {
+    for (const revista of camara.revistas) {
+      revista.objetivo = `revistas/${revista.id}/portada.jpg`;
+      revista.video = `revistas/${revista.id}/video.mp4`;
+    }
+  }
   return datos;
 }
 
 function validar(datos) {
-  if (!Array.isArray(datos.cursos)) throw new Error('revistas.json debe tener la lista "cursos".');
+  if (!Array.isArray(datos.camaras)) throw new Error('revistas.json debe tener la lista "camaras".');
   const vistos = new Set();
-  for (const curso of datos.cursos) {
-    if (!curso.id) throw new Error('Hay un curso sin "id" en revistas.json.');
-    if (!Array.isArray(curso.revistas)) throw new Error(`El curso ${curso.id} no tiene la lista "revistas".`);
-    curso.revistas.forEach((revista, i) => {
+  for (const camara of datos.camaras) {
+    if (!camara.id || !SEGURO.test(camara.id)) {
+      throw new Error('Cada cámara necesita un "id" con solo letras, números y guiones (es el nombre de su archivo .mind).');
+    }
+    if (!Array.isArray(camara.revistas)) throw new Error(`La cámara ${camara.id} no tiene la lista "revistas".`);
+    camara.revistas.forEach((revista, i) => {
       for (const campo of CAMPOS) {
-        if (!revista[campo]) throw new Error(`En ${curso.id}, la revista n.º ${i + 1} no tiene "${campo}".`);
+        if (!revista[campo]) throw new Error(`En la cámara ${camara.id}, la revista n.º ${i + 1} no tiene "${campo}".`);
       }
-      if (!/^[A-Za-z0-9-]+$/.test(revista.id)) {
+      if (!SEGURO.test(revista.id)) {
         throw new Error(`El id "${revista.id}" solo puede tener letras, números y guiones (va dentro de la dirección del QR).`);
       }
       if (vistos.has(revista.id)) throw new Error(`El id "${revista.id}" está repetido.`);
@@ -46,24 +61,43 @@ function validar(datos) {
   }
 }
 
-export function cursosConRevistas(datos) {
-  return datos.cursos.filter(c => c.revistas.length > 0);
+export function nombreCamara(camara) {
+  return camara.nombre || camara.id;
 }
 
-export function buscarCurso(datos, id) {
-  return datos.cursos.find(c => c.id.toLowerCase() === String(id || '').toLowerCase()) || null;
+export function camarasConRevistas(datos) {
+  return datos.camaras.filter(c => c.revistas.length > 0);
+}
+
+export function buscarCamara(datos, id) {
+  return datos.camaras.find(c => c.id.toLowerCase() === String(id || '').toLowerCase()) || null;
 }
 
 export function buscarRevista(datos, id) {
-  for (const curso of datos.cursos) {
-    const indice = curso.revistas.findIndex(r => r.id.toLowerCase() === String(id || '').toLowerCase());
-    if (indice !== -1) return { curso, revista: curso.revistas[indice], indice };
+  for (const camara of datos.camaras) {
+    const indice = camara.revistas.findIndex(r => r.id.toLowerCase() === String(id || '').toLowerCase());
+    if (indice !== -1) return { camara, revista: camara.revistas[indice], indice };
   }
   return null;
 }
 
-export function rutaTargets(cursoId) {
-  return `targets/${cursoId}.mind`;
+// Todas las revistas agrupadas por curso, en orden 11A, 11B, 11C...
+// Cada revista va con su camara: [{ curso, revistas: [{ revista, camara }] }]
+export function revistasPorCurso(datos) {
+  const grupos = new Map();
+  for (const camara of datos.camaras) {
+    for (const revista of camara.revistas) {
+      if (!grupos.has(revista.curso)) grupos.set(revista.curso, []);
+      grupos.get(revista.curso).push({ revista, camara });
+    }
+  }
+  return [...grupos.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'es', { numeric: true }))
+    .map(([curso, revistas]) => ({ curso, revistas }));
+}
+
+export function rutaTargets(camaraId) {
+  return `targets/${camaraId}.mind`;
 }
 
 // Para insertar texto del JSON en HTML sin riesgo.

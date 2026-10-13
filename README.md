@@ -6,6 +6,7 @@ en el que los estudiantes explican su artículo. No hay que instalar ninguna app
 
 - **Dirección pública:** https://jeffry0902.github.io/revista-aumentada-itey/
 - **Feria:** viernes 23 de octubre de 2026, de 8:00 a. m. a 12:00 m.
+- **Revistas:** 2 grupos por curso × 7 cursos (11A, 11C, 11D, 11E, 11F, 11G, 11I) = **14 revistas**.
 - **Tecnología:** página estática en GitHub Pages, MindAR 1.2.5 + A-Frame 1.5.0 desde CDN. No tiene servidor propio ni base de datos.
 
 ---
@@ -14,178 +15,196 @@ en el que los estudiantes explican su artículo. No hay que instalar ninguna app
 
 | Página | Para qué |
 |---|---|
-| `index.html` | Inicio: instrucciones, botón **Abrir cámara** y lista de revistas por curso. |
-| `ar.html?curso=11A` | Cámara con realidad aumentada de un curso. Reconoce las portadas de ese curso y reproduce el video encima. Botón **Ver video** para verlo en grande. |
-| `ver.html?id=11A-01` | Solo el video de una revista. **A esta página llevan los QR impresos** (plan B sin cámara AR). |
-| `herramientas/compilar.html` | Para el docente: genera el archivo de reconocimiento de un curso. |
+| `index.html` | Inicio: instrucciones, botón **Abrir cámara** y lista de revistas agrupadas por curso. |
+| `ar.html?camara=11` | La cámara con realidad aumentada. **Una sola cámara reconoce las 14 revistas.** Reproduce el video encima de la portada; botón **Ver video** para verlo en grande. |
+| `ver.html?id=11A-01` | Solo el video de una revista. **A esta página llevan los QR impresos en las revistas** (plan B sin cámara AR). |
+| `herramientas/compilar.html` | Para el docente: genera el archivo de reconocimiento de las portadas. |
 | `herramientas/qr.html` | Para el docente: genera e imprime los QR. |
 
 El visitante:
-1. Toca **Abrir cámara** y elige el curso (aparece en la portada).
+1. Toca **Abrir cámara** (o escanea el QR de la cámara en el cartel de cualquier stand).
 2. Permite el uso de la cámara.
-3. Apunta a la portada. El video aparece anclado sobre la página y abajo sale una tarjeta con el título y el botón **Ver video**.
+3. Apunta a la portada de cualquier revista. El video aparece anclado sobre la página y abajo sale una tarjeta con el curso, el título y el botón **Ver video**.
 4. Toca la pantalla para oír el sonido. Los celulares no dejan sonar un video sin un toque previo, así que el primer video puede empezar en silencio.
 
+Puede pasar de stand en stand sin cerrar la cámara: reconoce cualquier revista de la feria.
 Si la cámara no funciona, escanea el **QR de la revista**, que abre `ver.html` con el video.
 
 ## Estructura de carpetas
+
+**Cada revista tiene su carpeta** con su portada y su video. El nombre de la carpeta es el `id` de la revista:
 
 ```
 revista-aumentada-itey/
 ├─ index.html, ar.html, ver.html     páginas
 ├─ revistas.json                     ← lo único que se edita para agregar revistas
-├─ css/                              estilos (azul institucional con filo rojo)
-├─ js/                               datos.js, contador.js, inicio.js, ar.js, ver.js
-├─ img/                              logo, escudo y favicon del ITEY
-├─ objetivos/11A/01.jpg …            imágenes objetivo (portadas), una carpeta por curso
-├─ targets/11A.mind …                archivos compilados, UNO POR CURSO
-├─ videos/11A/01.mp4 …               videos comprimidos, una carpeta por curso
+├─ revistas/
+│  ├─ 11A-01/
+│  │  ├─ portada.jpg                 la imagen que reconoce la cámara
+│  │  └─ video.mp4                   el video comprimido
+│  ├─ 11A-02/
+│  │  ├─ portada.jpg
+│  │  └─ video.mp4
+│  └─ …                              una carpeta por revista
+├─ targets/11.mind                   las portadas compiladas de la cámara "Grado 11°"
+├─ css/, js/, img/                   diseño, código, logo y escudo del ITEY
 └─ herramientas/
-   ├─ compilar.html                  compila las portadas de un curso → 11A.mind
+   ├─ compilar.html                  compila las portadas → targets/11.mind
    ├─ qr.html                        hoja de QR para imprimir (PNG/SVG)
    ├─ servidor-https.mjs             servidor de prueba para el celular por wifi
-   └─ comprimir-videos.ps1           compresión de videos en lote con ffmpeg
+   └─ comprimir-videos.ps1           compresión de videos con ffmpeg
 ```
 
-## Por qué un archivo de reconocimiento por curso (y no uno solo con las 42)
+Los nombres son fijos: siempre `portada.jpg` y `video.mp4`. Así nunca se confunde la portada de un video con la de otro.
 
-Mientras la cámara no reconoce ninguna portada, que es casi todo el tiempo mientras el visitante apunta,
-MindAR compara cada imagen de la cámara **contra las portadas del archivo una por una**
-(`controller.worker.js`, ciclo `for` sobre los targets). El trabajo crece con el número de portadas:
+## Una sola cámara para las 14 revistas
 
-| | 1 archivo con 42 | **1 por curso (~6)** ✅ | 1 por revista |
-|---|---|---|---|
-| Comparaciones por intento | 42 | **6** | 1 |
-| Descarga antes de abrir la cámara | las 42 portadas | ~1/7 | mínima |
-| Confusión entre portadas parecidas (mismo logo o plantilla) | alta | baja | ninguna |
-| Si un equipo cambia su portada | recompilar 42 | recompilar su curso | una |
-| Paso extra para el visitante | ninguno | elegir curso (1 toque) | elegir revista, y para eso el QR ya da el video |
+MindAR guarda todas las portadas de una cámara en un solo archivo (`targets/11.mind`). Mientras no reconoce
+ninguna, compara cada imagen de la cámara **contra esas portadas una por una**. Con 14 es manejable:
 
-En un Android de gama media la diferencia entre 42 y 6 comparaciones se nota en segundos de espera.
-El toque de más para elegir el curso se evita con el **QR de cámara por curso** en cada stand
-(sale en `herramientas/qr.html`), que abre `ar.html?curso=11A` directamente. Dentro de la cámara
-hay un selector para cambiar de curso.
+| | Una cámara por curso (7 de 2) | **Una cámara para todo 11° (14)** ✅ |
+|---|---|---|
+| Qué hace el visitante | cambia de cámara al pasar a un stand de otro curso | abre la cámara una vez y reconoce todo |
+| QR para los carteles de los stands | 7 distintos | **1 solo** |
+| Descarga antes de abrir la cámara | ~1,6 MB | ~0,4–0,8 MB por portada → **~6–11 MB**, una vez por visitante |
+| Velocidad para reconocer | la más rápida | algo más lenta en celulares modestos |
+| Si un equipo cambia su portada | recompilar 2 | recompilar las 14 (3–5 minutos) |
+
+**Plan si resulta pesada o lenta:** cuando estén las 14 portadas reales, medir el peso de `targets/11.mind` y
+probar en un celular económico. Si tarda mucho, se parte en dos cámaras agregando una segunda en
+`revistas.json` (por ejemplo 11A–11E y 11F–11I). No hay que tocar el código.
+
+Prueba del prototipo (26 de septiembre): Samsung S25 Ultra con Chrome reconoce en ~1 s y tiembla muy poco;
+en un iPhone 17 Pro Max el video funciona bien (lo que costó fue leer el QR en la pantalla del computador).
 
 ---
 
-## 1. Preparar una buena imagen objetivo
+## 1. Qué pedirle a cada equipo
 
-La imagen objetivo es la **portada final tal como sale impresa** (o la página con la imagen del artículo).
+Cada equipo entrega **una carpeta** con el nombre `curso - equipo`, por ejemplo `11B - Los Newtonianos`, con:
+- **La portada** tal como se va a imprimir: JPG o PNG de **al menos 1000 px de ancho**. Exportada del mismo
+  archivo con el que se imprime (Canva, Word, Publisher), no una captura de pantalla ni una imagen de internet pequeña.
+- **El video** de 60 a 90 segundos, horizontal o vertical, grabado con el celular. No hace falta comprimirlo.
+- **El título del artículo** y **el nombre del equipo** (en el mensaje o en un archivo de texto). **Sin nombres de estudiantes.**
+
+## 2. Preparar una buena portada
+
 MindAR reconoce por "puntos de interés": esquinas, bordes, letras y texturas.
 
 **Sí:**
 - Mucho detalle repartido por toda la página: texto, dibujos, fotos, patrones, bordes nítidos.
 - Buen contraste (oscuro sobre claro o al revés).
-- Exportarla del mismo archivo con el que se imprime (Canva, Word, Publisher) como **JPG de unos 1000 px de ancho**.
-  La herramienta de compilar avisa si pasa de 2000 px o baja de 480 px.
+- Unos 1000 px de ancho. La herramienta de compilar avisa si pasa de 2000 px o baja de 480 px.
 - Imprimir en papel **mate** si se puede. El brillo del papel satinado refleja la luz y "borra" zonas.
 
 **No:**
 - Fondos lisos grandes (un degradado, un cielo, un color plano ocupando media portada).
 - Patrones que se repiten igual (cuadrícula perfecta, baldosas), porque confunden la ubicación.
 - Portadas casi iguales entre equipos (misma plantilla y solo cambia el título): se confunden entre sí.
-  Pide que cada portada tenga una imagen grande propia.
-- Cambiar la portada después de compilar: si cambia, **hay que volver a compilar el curso**.
+  Con 14 revistas en una sola cámara esto importa más: pide que cada portada tenga una imagen grande propia.
+- Cambiar la portada después de compilar: si cambia, **hay que volver a compilar** (paso 5).
 
-Prueba rápida: en `compilar.html` la miniatura debe verse "cargada" de detalle. Si en la foto se ven
-áreas grandes sin nada, el reconocimiento será lento o fallará.
+## 3. Agregar una revista
 
-## 2. Agregar una revista a `revistas.json`
-
-```json
-{
-  "id": "11C-03",
-  "equipo": "Los Newtonianos",
-  "titulo": "La física del fútbol",
-  "objetivo": "objetivos/11C/03.jpg",
-  "video": "videos/11C/03.mp4"
-}
-```
+1. Elige su `id`: curso + número, por ejemplo `11B-01` y `11B-02`. **El id va dentro del QR impreso**: una vez impreso, no se cambia.
+2. Crea la carpeta `revistas\11B-01\`.
+3. Pon la portada con el nombre **`portada.jpg`**. Si viene en PNG, ábrela en Paint y usa *Guardar como → JPEG*.
+4. Comprime el video directamente a esa carpeta (paso 4); queda como **`video.mp4`**.
+5. En `revistas.json`, dentro de la lista `"revistas"` de la cámara, agrega:
+   ```json
+   {
+     "id": "11B-01",
+     "curso": "11B",
+     "equipo": "Los Newtonianos",
+     "titulo": "La física del fútbol"
+   }
+   ```
+   Separa cada revista de la anterior con una **coma**.
+6. **Vuelve a compilar** (paso 5). El orden importa: la primera revista de la lista es la portada 0 del archivo `.mind`,
+   la segunda la 1, y así. Si agregas, quitas o reordenas revistas, hay que recompilar.
+7. Publica (paso 8).
 
 | Campo | Qué es |
 |---|---|
-| `id` | Código único. **Va dentro del QR impreso**: una vez impreso, no se cambia. Solo letras, números y guiones. Sugerido: `CURSO-NN`. |
+| `id` | Código único, también es el nombre de la carpeta. Solo letras, números y guiones. |
+| `curso` | El curso que sale en la tarjeta de la cámara y agrupa la lista de inicio. |
 | `equipo` | Nombre del equipo. **Nada de nombres de estudiantes.** |
 | `titulo` | Título del artículo. |
-| `objetivo` | Ruta de la imagen objetivo (portada). |
-| `video` | Ruta del video comprimido. |
 
-Pasos:
-1. Copia la portada en `objetivos/<curso>/` y el video comprimido en `videos/<curso>/`.
-2. En `revistas.json`, busca el curso y agrega la revista dentro de su lista `"revistas"`. Separa cada revista de la anterior con una **coma**.
-3. **El orden importa:** la primera revista del curso es la portada 0 del archivo `.mind`, la segunda la 1, y así.
-   Si agregas, quitas o reordenas revistas de un curso, **vuelve a compilar ese curso** (paso 4).
-4. Los cursos sin revistas no aparecen en la página.
-
-Otros campos del archivo:
+Otros campos de `revistas.json`:
+- `camaras`: la lista de cámaras. Hoy hay una: `"id": "11"` (su archivo es `targets/11.mind`) y `"nombre": "Grado 11°"`.
 - `urlPublica`: dirección del sitio. La usan los QR. No la cambies después de imprimir.
-- `goatcounter`: código del contador de escaneos (paso 8). Vacío = sin contador.
+- `goatcounter`: código del contador de escaneos (paso 9). Vacío = sin contador.
 - `evento`: texto que sale en el encabezado.
 
 Si el archivo queda con un error (una coma de más o de menos), la página lo dice en letras rojas. Para revisarlo
 puedes abrirlo en VS Code, que subraya el error.
 
-## 3. Comprimir los videos
+## 4. Comprimir los videos
 
-Meta: MP4 H.264, 720p, de 60 a 90 s y como máximo ~8 MB. Probado con un video de 90 s de mucho movimiento: queda en **7,0 MB**.
+Meta: MP4 H.264, 720p, de 60 a 90 s y como máximo ~8 MB. Probado con un video de 90 s de mucho movimiento: queda en **7,0 MB**;
+un video real de 74 s grabado con celular pasó de 12,5 MB a **6,0 MB**.
 
-ffmpeg ya está instalado con scoop (`scoop install ffmpeg`). Pon los videos originales de un curso en una
-carpeta **fuera del proyecto** (o en `originales/`, que no se sube a GitHub) y ejecuta en PowerShell, desde la carpeta del proyecto:
+ffmpeg ya está instalado con scoop (`scoop install ffmpeg`). Para **una revista**, desde la carpeta del proyecto en PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "C:\Users\HP\Desktop\originales\11A" -Salida .\videos\11A
+powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "E:\OneDrive\Escritorio\entregas\11B - Los Newtonianos" -Salida .\revistas\11B-01 -Nombre video
 ```
+
+- `-Entrada`: la carpeta que entregó el equipo. Debe tener **un solo video** (la portada puede estar ahí también, no estorba).
+- `-Salida`: la carpeta de la revista. Si no existe, se crea.
+- `-Nombre video`: el archivo queda como `video.mp4`.
 
 El script:
 - reduce a 720 px el lado corto (horizontal → 1280×720, vertical → 720×1280) sin agrandar videos pequeños;
 - limita a 30 cuadros por segundo, audio mono y ~600 kbit/s de video;
 - **borra los metadatos del celular** (ubicación GPS, modelo del equipo);
 - pone el índice al comienzo del archivo (`faststart`) para que empiece a sonar antes de terminar de descargar;
-- deja el nombre en minúsculas, sin tildes ni espacios (`Equipo 3.MOV` → `equipo-3.mp4`);
-- al final muestra una tabla con duración y peso, y avisa si alguno pasa de 90 s o de 8 MB.
+- al final muestra duración y peso, y avisa si pasa de 90 s o de 8 MB.
 
-Si un video pesa más de 8 MB, vuelve a pasarlo con menos calidad: `-KbpsVideo 450`.
+Si un video pesa más de 8 MB, vuelve a pasarlo con menos calidad: agrega `-KbpsVideo 450`.
+Sin `-Nombre`, el script comprime **todos** los videos de una carpeta y conserva sus nombres (en minúsculas, sin tildes ni espacios).
 
-**Comando de ffmpeg de una sola línea** (lo mismo, sin el script):
+**Comando de ffmpeg de una sola línea** (lo mismo, sin el script, para todos los videos de una carpeta):
 
 ```powershell
-Get-ChildItem "C:\Users\HP\Desktop\originales\11A\*" -Include *.mp4,*.mov | ForEach-Object { ffmpeg -y -i $_.FullName -map 0:v:0 -map "0:a:0?" -map_metadata -1 -vf "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)'" -fpsmax 30 -c:v libx264 -preset slow -crf 26 -maxrate 600k -bufsize 1200k -profile:v high -pix_fmt yuv420p -g 60 -c:a aac -b:a 64k -ac 1 -ar 44100 -movflags +faststart "videos\11A\$($_.BaseName).mp4" }
+Get-ChildItem "E:\OneDrive\Escritorio\originales\*" -Include *.mp4,*.mov | ForEach-Object { ffmpeg -y -i $_.FullName -map 0:v:0 -map "0:a:0?" -map_metadata -1 -vf "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)'" -fpsmax 30 -c:v libx264 -preset slow -crf 26 -maxrate 600k -bufsize 1200k -profile:v high -pix_fmt yuv420p -g 60 -c:a aac -b:a 64k -ac 1 -ar 44100 -movflags +faststart "E:\OneDrive\Escritorio\comprimidos\$($_.BaseName).mp4" }
 ```
 
-Presupuesto de espacio: 42 videos × ≤ 8 MB ≈ 340 MB, por debajo de los ~700 MB previstos (GitHub Pages admite hasta 1 GB).
+Presupuesto de espacio: 14 videos × ≤ 8 MB ≈ 110 MB. GitHub Pages admite hasta 1 GB.
 
-## 4. Compilar las portadas (targets)
+## 5. Compilar las portadas
 
-1. Abre `herramientas/compilar.html` en el **computador**. Sirve en el servidor de prueba (paso 6) o
-   ya publicado: `https://jeffry0902.github.io/revista-aumentada-itey/herramientas/compilar.html`.
-2. Elige el curso. Revisa la lista: cada portada con su número (0, 1, 2…) en el orden de `revistas.json`
-   y sin avisos en rojo.
-3. Toca **Compilar 11A** y espera. Con 6 portadas tarda unos minutos. **Deja la pestaña a la vista**: si cambias
+1. Abre `herramientas/compilar.html` en el **computador**: en el servidor de prueba (paso 7) o
+   ya publicado, `https://jeffry0902.github.io/revista-aumentada-itey/herramientas/compilar.html`.
+2. Revisa la lista: cada portada con su número (0, 1, 2…) en el orden de `revistas.json` y sin avisos en rojo.
+3. Toca **Compilar Grado 11°** y espera. Con 14 portadas tarda unos minutos. **Deja la pestaña a la vista**: si cambias
    de pestaña o minimizas el navegador, la compilación se pausa hasta que vuelvas.
-4. Se descarga `11A.mind` a tu carpeta de Descargas. **Muévelo a `targets/`** del proyecto (reemplaza el anterior).
-5. Sube los cambios a GitHub (paso 7).
+4. Se descarga `11.mind` a tu carpeta de Descargas. **Muévelo a `targets\`** del proyecto (reemplaza el anterior).
+5. Publica (paso 8).
 
-La cámara revisa que el archivo coincida con el JSON: si `11A.mind` tiene 5 portadas y el JSON 6 revistas,
-sale un aviso amarillo "Aviso para el docente" al abrir la cámara de ese curso.
+La cámara revisa que el archivo coincida con el JSON: si `11.mind` tiene 13 portadas y el JSON 14 revistas,
+sale un aviso amarillo "Aviso para el docente" al abrir la cámara.
 
 *Alternativa:* el compilador oficial de MindAR, https://hiukim.github.io/mind-ar-js-doc/tools/compile.
 Funciona igual, pero hay que subir las imágenes **exactamente en el orden del JSON**, a mano. Si se
 desordenan, cada revista muestra el video de otra. Por eso existe `compilar.html`.
 
-## 5. Generar los QR
+## 6. Generar los QR
 
 1. Abre `herramientas/qr.html` (en el servidor de prueba o publicado).
 2. Revisa que la dirección de arriba sea `https://jeffry0902.github.io/revista-aumentada-itey/`.
 3. Hay dos grupos:
    - **QR de cada revista**: abre su video (`ver.html?id=…`). Va impreso **en la revista**.
-   - **QR de la cámara por curso**: abre la cámara de ese curso. Va en un cartel **en el stand**.
+   - **QR de la cámara · Grado 11°**: abre la cámara. **Es el mismo para todos los stands**: va en un cartel en cada uno.
 4. Para meter un QR en el diseño de la revista (Canva, Word…) usa el botón **PNG** (1200 px) o **SVG**.
-   Para imprimir una hoja con todos, filtra por curso y toca **Imprimir** (o "Guardar como PDF").
-5. Tamaño mínimo impreso: **2,5 × 2,5 cm**, sin recortar el borde blanco. Pruébalo con dos celulares antes de imprimir la revista completa.
+   Para imprimir una hoja, filtra por curso si quieres y toca **Imprimir** (o "Guardar como PDF").
+5. Tamaño mínimo impreso: **2,5 × 2,5 cm**, sin recortar el borde blanco. Pruébalo **impreso** con un Android y un iPhone
+   antes de imprimir la revista completa: en la pantalla del computador los iPhone a veces cuestan más en leerlos.
 
 Los QR se pueden imprimir desde ya: dependen solo de `urlPublica` y del `id`, no de que el video esté listo.
 
-## 6. Probar en local desde Windows
+## 7. Probar en local desde Windows
 
 ### En el computador
 ```powershell
@@ -206,29 +225,11 @@ En Chrome toca "Configuración avanzada" → "Acceder a localhost (sitio no segu
 Si el wifi del colegio bloquea la conexión entre equipos (pasa en redes de invitados), comparte datos desde
 el celular al computador, o prueba directamente en GitHub Pages: después de `git push` los cambios salen en 1 o 2 minutos.
 
-## 7. Publicar en GitHub Pages
+## 8. Publicar en GitHub Pages
 
-La primera vez:
-1. Entra a https://github.com/new con tu cuenta **jeffry0902**.
-   - **Repository name:** `revista-aumentada-itey` (exactamente así: forma la dirección de los QR).
-   - **Description:** opcional.
-   - **Public** (GitHub Pages gratis exige repositorio público).
-   - **Add a README file:** sin marcar. **Add .gitignore:** None. **Choose a license:** None.
-   - Toca **Create repository**.
-2. En PowerShell, desde la carpeta del proyecto:
-   ```powershell
-   git add .
-   git commit -m "Revista Aumentada: prototipo"
-   git branch -M main
-   git remote add origin https://github.com/jeffry0902/revista-aumentada-itey.git
-   git push -u origin main
-   ```
-3. En GitHub, dentro del repositorio: **Settings** → menú izquierdo **Pages** →
-   - **Source:** Deploy from a branch
-   - **Branch:** `main` y carpeta `/ (root)` → **Save**
-4. Espera 1 o 2 minutos y recarga. Arriba sale **"Your site is live at https://jeffry0902.github.io/revista-aumentada-itey/"**.
+Ya está publicado: repositorio `jeffry0902/revista-aumentada-itey`, rama `main`, carpeta raíz.
 
-Cada vez que cambies algo:
+Cada vez que cambies algo, en PowerShell desde la carpeta del proyecto:
 ```powershell
 git add .
 git commit -m "Agrega revistas de 11C"
@@ -236,23 +237,34 @@ git push
 ```
 GitHub Pages guarda en caché unos 10 minutos: si el celular no muestra el cambio, espera o recarga.
 
-## 8. Contador de escaneos (GoatCounter)
+<details>
+<summary>Cómo se publicó la primera vez (por si hay que repetirlo)</summary>
+
+1. En https://github.com/new: **Repository name** `revista-aumentada-itey`, **Public**, sin README, sin .gitignore, sin licencia → **Create repository**.
+2. `git remote add origin https://github.com/jeffry0902/revista-aumentada-itey.git` y `git push -u origin main`.
+3. En el repositorio: **Settings** → **Pages** → **Source:** Deploy from a branch → **Branch:** `main` y `/ (root)` → **Save**.
+4. A los 1–2 minutos: "Your site is live at https://jeffry0902.github.io/revista-aumentada-itey/".
+</details>
+
+## 9. Contador de escaneos (GoatCounter, opcional)
 
 Cuenta cuántas veces se abrió cada cosa, sin cookies y sin datos personales. Es gratis para uso no comercial.
-Si GoatCounter falla, la página sigue funcionando igual.
+Si GoatCounter falla, la página sigue funcionando igual. **Hoy está apagado** (`"goatcounter": ""`).
 
 Activarlo (una sola vez):
-1. Entra a https://www.goatcounter.com y toca **Sign up**.
-2. En **Code** escribe un nombre corto, por ejemplo `revista-itey`: tu panel quedará en `https://revista-itey.goatcounter.com`.
-3. Completa correo y contraseña y crea la cuenta.
-4. En `revistas.json` pon ese código: `"goatcounter": "revista-itey"` y publica (paso 7).
+1. Entra a https://www.goatcounter.com/signup.
+2. En el primer campo (el nombre de la cuenta) escribe un nombre corto, por ejemplo `revista-itey`:
+   tu panel quedará en `https://revista-itey.goatcounter.com`. **Site domain** se puede dejar vacío.
+3. Completa correo y contraseña (mínimo 8 caracteres), escribe el número que pide la verificación
+   anti-spam y toca **Sign up**.
+4. En `revistas.json` pon ese nombre: `"goatcounter": "revista-itey"` y publica (paso 8).
 
 Qué se cuenta (una vez por revista cada vez que se abre la página):
 
 | Nombre en GoatCounter | Significa |
 |---|---|
 | `/inicio` | visitas a la página de inicio |
-| `/camara/11A` | aperturas de la cámara de 11A |
+| `/camara/11` | aperturas de la cámara |
 | `ar-11A-01` | la cámara **reconoció** la portada de 11A-01 |
 | `qr-11A-01` | alguien escaneó el **QR** de 11A-01 |
 | `lista-11A-01` | alguien abrió el video de 11A-01 desde la lista |
@@ -261,16 +273,16 @@ Qué se cuenta (una vez por revista cada vez que se abre la página):
 Las pruebas en tu computador o en la red de la casa no cuentan: GoatCounter ignora `localhost` y las direcciones `192.168…`.
 Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 
-## 9. Lista de chequeo para el día de la feria
+## 10. Lista de chequeo para el día de la feria
 
 **El día anterior (22 de octubre)**
-- [ ] Todas las revistas cargadas en `revistas.json`, cada curso compilado y publicado.
-- [ ] Abrir la cámara de **cada curso** y reconocer **cada portada impresa** (no en pantalla).
+- [ ] Las 14 revistas en `revistas.json`, cada una con su carpeta, compiladas y publicadas.
+- [ ] Abrir la cámara y reconocer **cada una de las 14 portadas impresas** (no en pantalla).
 - [ ] Probar en **3 celulares distintos**: un Android de gama media, un Android económico y un iPhone.
       Con datos móviles y con el wifi del colegio.
-- [ ] Escanear todos los QR con la cámara normal del celular (sin app lectora).
-- [ ] Revisar que ningún curso muestre el aviso amarillo "Aviso para el docente".
-- [ ] Imprimir el cartel con el **QR de cámara por curso** para cada stand.
+- [ ] Escanear todos los QR impresos con la cámara normal del celular (sin app lectora).
+- [ ] Revisar que no salga el aviso amarillo "Aviso para el docente".
+- [ ] Imprimir un cartel con el **QR de la cámara** para cada stand.
 - [ ] Imprimir 2 copias de la hoja de QR de revistas como respaldo.
 
 **Montaje del stand**
@@ -284,7 +296,7 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 - Subir el **brillo** del celular al máximo.
 - Limpiar el lente de la cámara.
 - Apuntar a la portada **completa** a unos 30 cm, quieto 2 segundos.
-- Si no reconoce en 10 segundos: usar el **QR** (plan B).
+- Si no reconoce en 10 segundos: usar el **QR** de la revista (plan B).
 - Si el video no suena: tocar la pantalla y revisar que el celular no esté en silencio.
 - Si abrió el enlace desde una app lectora de QR y la cámara no abre: menú ⋮ → **Abrir en Chrome**.
 
@@ -293,16 +305,14 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 - Plan C, si falla internet: un computador o celular del stand con los videos descargados para mostrarlos sin conexión.
   Si el wifi del colegio es malo, un celular con datos compartidos en el stand ayuda a los visitantes cercanos.
 
-## 10. Cronograma
+## 11. Cronograma
 
 | Fecha | Tarea |
 |---|---|
-| Hasta el 16 de octubre | Prototipo funcionando con 2 revistas de prueba ✔ (este repositorio). Publicar en GitHub Pages y probar en celulares. |
-| 19 al 21 de octubre | Cargar portadas y videos reales: comprimir (paso 3), `revistas.json` (paso 2), compilar por curso (paso 4), QR (paso 5), publicar (paso 7). |
+| Hasta el 16 de octubre | Prototipo funcionando con 2 revistas de prueba ✔ publicado y probado en Android y iPhone. |
+| 19 al 21 de octubre | Recibir las carpetas de los 14 equipos (paso 1), crear sus carpetas y comprimir videos (pasos 3–4), compilar (paso 5), QR (paso 6), publicar (paso 8). |
 | 22 de octubre | Pruebas finales en celulares (lista de chequeo). |
 | 23 de octubre | Feria, 8:00 a. m. – 12:00 m. |
-
-Qué pedir a cada equipo: portada final en JPG (la misma que se imprime), video de 60–90 s, título del artículo y nombre del equipo.
 
 ## Privacidad
 
@@ -318,12 +328,13 @@ Qué pedir a cada equipo: portada final en JPG (la misma que se imprime), video 
 
 | Problema | Qué hacer |
 |---|---|
-| No reconoce la portada | Más luz y sin reflejos, portada completa en pantalla, 30 cm. Si una portada nunca se reconoce, tiene poco detalle (paso 1). |
-| Reconoce la revista equivocada | El orden de `revistas.json` no coincide con el `.mind`: recompila el curso (paso 4). |
-| Sale "La cámara de 11A todavía no está lista" | Falta `targets/11A.mind` o no se publicó. |
+| No reconoce la portada | Más luz y sin reflejos, portada completa en pantalla, 30 cm. Si una portada nunca se reconoce, tiene poco detalle o es muy pequeña (paso 2). |
+| Reconoce la revista equivocada | El orden de `revistas.json` no coincide con el `.mind`: recompila (paso 5). O dos portadas se parecen demasiado. |
+| Sale "La cámara todavía no está lista" | Falta `targets/11.mind` o no se publicó. |
 | Sale "Aviso para el docente" | El `.mind` tiene otro número de portadas que el JSON: recompila. |
 | "Este navegador no puede usar la cámara" | Se abrió dentro de una app (lector de QR, Facebook, WhatsApp). Abrir en Chrome o Safari. |
 | La cámara se ve negra o pide permiso otra vez | Candado junto a la dirección → Permisos → Cámara → Permitir, y recargar. |
 | El video empieza sin sonido | Normal: tocar la pantalla. Revisar el botón de volumen y el modo silencio. |
+| El video no carga | Revisa que exista `revistas/<id>/video.mp4` con ese nombre exacto. |
 | El video tarda en empezar | Red lenta: el video pesa hasta 8 MB. El botón "Ver video" o el QR son iguales de pesados; ayuda un wifi mejor o datos móviles. |
 | La página no muestra un cambio | Caché de GitHub Pages: esperar 10 minutos o recargar. |
