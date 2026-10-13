@@ -324,6 +324,25 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 | 22 de octubre | Pruebas finales en celulares (lista de chequeo). |
 | 23 de octubre | Feria, 8:00 a. m. – 12:00 m. |
 
+## Sala virtual con gafas (`sala.html`)
+
+Para el stand con gafas de realidad virtual tipo VR Box (el celular va adentro):
+el visitante queda en una sala circular con **todas las portadas a su alrededor**. Mira una portada
+**2 segundos** y su video se abre en una pantalla gigante, en modo cine. Mira **«Volver»** 2 segundos para
+regresar. Al terminar un video, la sala vuelve sola a los 6 segundos.
+
+- Dirección: `https://jeffry0902.github.io/revista-aumentada-itey/sala.html` (también está en la página de inicio).
+- No hay nada que configurar: usa las mismas carpetas `revistas/<id>/` y `revistas.json`. Cada revista nueva aparece sola.
+  Caben bien hasta unas 16 revistas en el círculo completo.
+- **Uso en el stand:** abrir `sala.html` en el celular de las gafas, tocar **Entrar con gafas** (ese toque habilita
+  el sonido) y meter el celular **acostado** en las gafas. Para el siguiente visitante no hay que tocar nada.
+  **Ver sin gafas** sirve para probar moviendo el celular; en el computador se arrastra con el mouse y se hace clic.
+- **Gafas:** comprar un modelo "compatible hasta 7 pulgadas" (los celulares actuales miden 6,5–6,9"). Los celulares
+  de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
+- Para que suene: volumen alto del celular o audífonos bluetooth. Toallitas para limpiar entre visitantes y sesiones de 1–2 minutos.
+- Probado en el computador con 4 revistas reales y con 16 simuladas (selección, video, volver, fin de video).
+  **Falta la prueba con las gafas reales** en el celular del stand.
+
 ## Privacidad
 
 - El sitio no usa cookies ni formularios, y no pide datos personales. Solo se publican el nombre del equipo y el curso.

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Sala virtual · Revista Aumentada ITEY</title>
+  <meta name="theme-color" content="#13204a">
+  <link rel="icon" href="img/favicon.png">
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="stylesheet" href="css/sala.css">
+  <!-- Misma version de A-Frame que la camara: trae el modo de gafas (pantalla partida) para celulares. -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+</head>
+<body class="pagina-sala">
+  <!-- La escena 3D la arma js/sala.js con las revistas de revistas.json. -->
+  <a-scene id="escena"
+           renderer="colorManagement: true; antialias: true"
+           vr-mode-ui="enabled: true"
+           device-orientation-permission-ui="enabled: true"
+           loading-screen="enabled: false">
+    <a-assets timeout="15000"></a-assets>
+
+    <!-- Sala: cielo oscuro, piso y pared circular con los colores del ITEY -->
+    <a-sky color="#0b1430"></a-sky>
+    <a-circle id="piso" rotation="-90 0 0" radius="9" material="shader: flat; color: #1b2a5c"></a-circle>
+    <a-ring rotation="-90 0 0" position="0 0.01 0" radius-inner="3.05" radius-outer="3.15" material="shader: flat; color: #ffd21f"></a-ring>
+    <a-cylinder position="0 2 0" radius="6.5" height="4" open-ended="true"
+                material="side: back; shader: flat; color: #13204a"></a-cylinder>
+
+    <a-entity id="contenido"></a-entity>
+
+    <!-- Pantalla gigante del video (oculta hasta elegir una revista) -->
+    <a-entity id="pantalla" visible="false">
+      <a-plane id="pantalla-fondo" material="shader: flat; color: #000; opacity: 0.85; transparent: true" position="0 0 -0.02"></a-plane>
+      <a-video id="pantalla-video" src="#video-sala" material="shader: flat"></a-video>
+      <a-image id="pantalla-titulo" material="shader: flat; transparent: true"></a-image>
+      <a-image id="boton-volver" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="boton-repetir" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="pantalla-aviso" material="shader: flat; transparent: true" visible="false"></a-image>
+    </a-entity>
+
+    <!-- Camara con cursor de mirada: mirar algo 2 segundos lo selecciona -->
+    <a-entity id="camara" camera look-controls="magicWindowTrackingEnabled: true" position="0 1.6 0" wasd-controls="enabled: false">
+      <a-entity id="cursor"
+                cursor="fuse: true; fuseTimeout: 1800"
+                raycaster="objects: .seleccionable; far: 20"
+                position="0 0 -1"
+                geometry="primitive: ring; radiusInner: 0.011; radiusOuter: 0.017"
+                material="shader: flat; color: #ffd21f"
+                animation__mirando="property: scale; startEvents: fusing; easing: linear; dur: 1800; from: 1 1 1; to: 0.25 0.25 0.25"
+                animation__suelta="property: scale; startEvents: mouseleave; easing: easeOutQuad; dur: 150; to: 1 1 1"
+                animation__elige="property: scale; startEvents: click; easing: easeOutQuad; dur: 200; from: 1.6 1.6 1.6; to: 1 1 1">
+      </a-entity>
+    </a-entity>
+  </a-scene>
+
+  <!-- Un solo reproductor: se activa con el toque de "Entrar" para que luego suene sin pedir otro toque. -->
+  <video id="video-sala" playsinline webkit-playsinline crossorigin="anonymous" preload="none"></video>
+
+  <!-- Pantalla de entrada (fuera de las gafas) -->
+  <div id="entrada" class="sala-capa">
+    <div class="sala-capa__caja">
+      <img src="img/logo-itey.png" alt="ITEY" class="sala-logo">
+      <h1>Sala virtual</h1>
+      <p class="sala-sub">Revista Aumentada · <span id="evento">Feria de la Ciencia 2026</span></p>
+      <p id="estado-carga" class="sala-estado">Cargando revistas…</p>
+      <div class="sala-botones">
+        <button id="boton-gafas" class="boton boton--grande" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h18v8a2 2 0 0 1-2 2h-4l-2-3h-2l-2 3H5a2 2 0 0 1-2-2z"/><circle cx="8" cy="12.5" r="1.5"/><circle cx="16" cy="12.5" r="1.5"/></svg>
+          Entrar con gafas
+        </button>
+        <button id="boton-sin-gafas" class="boton boton--blanco" type="button" disabled>Ver sin gafas</button>
+      </div>
+      <ol class="sala-pasos">
+        <li>Sube el <strong>volumen</strong> y el <strong>brillo</strong> del celular.</li>
+        <li>Toca <strong>Entrar con gafas</strong> y pon el celular <strong>acostado</strong> dentro de las gafas.</li>
+        <li>Gira la cabeza para recorrer la sala. <strong>Mira una portada 2 segundos</strong> para ver su video.</li>
+        <li>Para salir del video, <strong>mira «Volver» 2 segundos</strong>.</li>
+      </ol>
+      <a class="sala-volver" href="./">‹ Volver al inicio</a>
+    </div>
+  </div>
+
+  <!-- Boton para salir del modo gafas sin recargar (lo usa el encargado del stand) -->
+  <button id="boton-salir" class="sala-salir" type="button" hidden>Salir de la sala</button>
+
+  <script type="module" src="js/sala.js"></script>
+</body>
+</html>

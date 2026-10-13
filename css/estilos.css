@@ -224,3 +224,9 @@ img { max-width: 100%; }
 .etiqueta { margin: 0; color: var(--rojo); font-weight: 800; letter-spacing: .02em; }
 .titulo-revista { margin: 2px 0 0; font-size: 1.5rem; line-height: 1.2; color: var(--azul-900); }
 .acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Acceso a la sala virtual ---------- */
+
+.sala-acceso { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 24px; padding: 16px 18px; }
+.sala-acceso > div { flex: 1 1 260px; }
+.sala-acceso strong { display: block; color: var(--azul-900); }
