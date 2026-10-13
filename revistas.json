@@ -24,6 +24,12 @@
           "curso": "Ejemplo",
           "equipo": "Revista de 11H (2024)",
           "titulo": "Económico, ¿a qué costo? El impacto oculto de las aplicaciones de consumo masivo"
+        },
+        {
+          "id": "ejemplo-moda",
+          "curso": "Ejemplo",
+          "equipo": "Revista de 11° (2024)",
+          "titulo": "Influencia del marketing en la moda"
         }
       ]
     }

@@ -81,6 +81,10 @@ en un iPhone 17 Pro Max el video funciona bien (lo que costó fue leer el QR en 
 
 ## 1. Qué pedirle a cada equipo
 
+**Entregas por OneDrive:** cada revista va en su propia carpeta dentro de `E:\OneDrive\Revista aumentada\entregas\`
+(hay una `_PLANTILLA - curso - equipo` con un `datos.txt` de ejemplo, y un `LEEME` con el paso a paso).
+La portada puede venir como PDF de la revista (se usa la página 1) o como imagen.
+
 Cada equipo entrega **una carpeta** con el nombre `curso - equipo`, por ejemplo `11B - Los Newtonianos`, con:
 - **La portada** tal como se va a imprimir: JPG o PNG de **al menos 1000 px de ancho**. Exportada del mismo
   archivo con el que se imprime (Canva, Word, Publisher), no una captura de pantalla ni una imagen de internet pequeña.
@@ -196,7 +200,13 @@ desordenan, cada revista muestra el video de otra. Por eso existe `compilar.html
 2. Revisa que la dirección de arriba sea `https://jeffry0902.github.io/revista-aumentada-itey/`.
 3. Hay dos grupos:
    - **QR de cada revista**: abre su video (`ver.html?id=…`). Va impreso **en la revista**.
-   - **QR de la cámara · Grado 11°**: abre la cámara. **Es el mismo para todos los stands**: va en un cartel en cada uno.
+   - **QR de la cámara · Grado 11°**: abre la cámara. **Es el mismo para todos**: va en la **portada de cada revista**
+     (en una esquina libre) y en un cartel en cada stand.
+
+   **Dónde va cada QR en la revista:** portada → QR de la cámara; contraportada → QR del video de esa revista.
+   Como el QR de la cámara queda impreso en la portada, **la `portada.jpg` que se compila debe ser la portada con su QR**,
+   exactamente como se imprime. Probado: el QR de la cámara solo no activa ninguna revista, y cada portada con QR
+   se reconoce únicamente como ella misma.
 4. Para meter un QR en el diseño de la revista (Canva, Word…) usa el botón **PNG** (1200 px) o **SVG**.
    Para imprimir una hoja, filtra por curso si quieres y toca **Imprimir** (o "Guardar como PDF").
 5. Tamaño mínimo impreso: **2,5 × 2,5 cm**, sin recortar el borde blanco. Pruébalo **impreso** con un Android y un iPhone
