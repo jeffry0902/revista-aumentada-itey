@@ -4,6 +4,7 @@
 
 import { cargarDatos, buscarRevista, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
+import { abrirLector } from './lector.js';
 
 const contenido = document.getElementById('contenido');
 const parametros = new URLSearchParams(location.search);
@@ -39,12 +40,21 @@ function mostrar(camara, revista) {
       </button>
     </div>
     <div class="acciones">
-      <a class="boton" href="ar.html?camara=${encodeURIComponent(camara.id)}">Abrir la cámara</a>
+      ${revista.paginas ? `<button class="boton" id="leer" type="button">Leer la revista (${revista.paginas} páginas)</button>` : ''}
+      <a class="boton${revista.paginas ? ' boton--claro' : ''}" href="ar.html?camara=${encodeURIComponent(camara.id)}">Abrir la cámara</a>
       <a class="boton boton--borde" href="./#lista">Ver todas las revistas</a>
     </div>`;
 
   const video = document.getElementById('video');
   const boton = document.getElementById('play');
+  const leer = document.getElementById('leer');
+  if (leer) {
+    leer.addEventListener('click', () => {
+      video.pause();
+      contarEvento(`leer-${revista.id}`, `Leer · ${revista.id}`);
+      abrirLector(revista, { textoVolver: '‹ Volver al video' });
+    });
+  }
   boton.addEventListener('click', () => video.play());
   video.addEventListener('play', () => { boton.hidden = true; });
   video.addEventListener('error', () => {

@@ -13,6 +13,12 @@
 //   - si la revista trae "paginas": N, sus paginas son revistas/<id>/paginas/1.jpg ... N.jpg
 //     (las genera herramientas/paginas.html a partir del PDF)
 
+// Todas las paginas importan este archivo: aqui se instala sw.js, que hace que
+// los celulares vean siempre la ultima version publicada.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(new URL('../sw.js', import.meta.url)).catch(() => {});
+}
+
 const CAMPOS = ['id', 'curso', 'equipo', 'titulo'];
 const SEGURO = /^[A-Za-z0-9-]+$/; // va dentro de direcciones y nombres de archivo
 
