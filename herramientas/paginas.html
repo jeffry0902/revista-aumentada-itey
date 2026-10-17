@@ -33,9 +33,11 @@
   </header>
 
   <main class="contenido">
-    <p>Elige la revista y su PDF <strong>completo</strong> (exportado de Canva, Word o Publisher con
-      <em>páginas sueltas</em>, no "pliegos" de dos páginas). Cada página se convierte en una imagen
+    <p>Elige la revista y su PDF <strong>completo</strong>: exportado de Canva, Word o Publisher, o escaneado
+      con el celular (Adobe Scan, CamScanner). Cada página se convierte en una imagen
       <code>1.jpg</code>, <code>2.jpg</code>… La página 1 es la portada.</p>
+    <p>Si el PDF trae <strong>pliegos</strong> (dos páginas en una hoja horizontal, como cuando se escanea la revista
+      abierta), deja marcada la casilla y cada pliego se parte en dos páginas por el medio.</p>
 
     <div class="fila">
       <label>Revista <select id="revista"></select></label>
@@ -45,6 +47,7 @@
           <option value="1400">Liviana (1400 px, para revistas largas)</option>
         </select>
       </label>
+      <label><input id="partir" type="checkbox" checked> Partir los pliegos en dos páginas</label>
     </div>
     <div class="fila">
       <input id="archivo" type="file" accept="application/pdf,.pdf">
@@ -98,6 +101,7 @@
       const id = $('revista').value;
       const alto = Number($('calidad').value);
       const archivo = $('archivo').files[0];
+      const partir = $('partir').checked;
       $('error').hidden = true;
       $('listo').hidden = true;
       $('miniaturas').innerHTML = '';
@@ -108,17 +112,17 @@
       try {
         const pdf = await pdfjs.getDocument({ data: await archivo.arrayBuffer() }).promise;
         const total = pdf.numPages;
-        if (total > MAX_PAGINAS) throw new Error(`El PDF tiene ${total} páginas; la sala admite hasta ${MAX_PAGINAS}.`);
         const zip = new JSZip();
-        let bytes = 0, horizontales = 0;
+        let bytes = 0, horizontales = 0, numero = 0;
 
         for (let n = 1; n <= total; n++) {
-          $('estado-texto').textContent = `Convirtiendo página ${n} de ${total}…`;
+          $('estado-texto').textContent = `Convirtiendo hoja ${n} de ${total}…`;
           const pagina = await pdf.getPage(n);
           const base = pagina.getViewport({ scale: 1 });
-          if (base.width > base.height) horizontales++;
-          // Alto fijo; las paginas horizontales se limitan a 2400 px de ancho.
-          const escala = Math.min(alto / base.height, 2400 / base.width);
+          const pliego = base.width > base.height * 1.1;
+          if (pliego) horizontales++;
+          // Alto fijo. Un pliego que se parte da dos paginas de ese alto; uno sin partir se limita a 2400 px de ancho.
+          const escala = pliego && partir ? alto / base.height : Math.min(alto / base.height, 2400 / base.width);
           const vista = pagina.getViewport({ scale: escala });
           const lienzo = document.createElement('canvas');
           lienzo.width = Math.round(vista.width);
@@ -127,16 +131,27 @@
           ctx.fillStyle = '#fff'; // las paginas sin fondo quedan blancas y no negras
           ctx.fillRect(0, 0, lienzo.width, lienzo.height);
           await pagina.render({ canvasContext: ctx, viewport: vista }).promise;
-          const blob = await new Promise(r => lienzo.toBlob(r, 'image/jpeg', 0.82));
-          bytes += blob.size;
-          zip.file(`paginas/${n}.jpg`, blob);
 
-          const li = document.createElement('li');
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(blob);
-          img.alt = `Página ${n}`;
-          li.append(img, `${n}`);
-          $('miniaturas').appendChild(li);
+          const mitad = Math.round(lienzo.width / 2);
+          const partes = pliego && partir ? [[0, mitad], [mitad, lienzo.width - mitad]] : [[0, lienzo.width]];
+          for (const [x, ancho] of partes) {
+            numero++;
+            if (numero > MAX_PAGINAS) throw new Error(`La revista pasa de ${MAX_PAGINAS} páginas, el máximo de la sala.`);
+            const recorte = document.createElement('canvas');
+            recorte.width = ancho;
+            recorte.height = lienzo.height;
+            recorte.getContext('2d').drawImage(lienzo, x, 0, ancho, lienzo.height, 0, 0, ancho, lienzo.height);
+            const blob = await new Promise(r => recorte.toBlob(r, 'image/jpeg', 0.82));
+            bytes += blob.size;
+            zip.file(`paginas/${numero}.jpg`, blob);
+
+            const li = document.createElement('li');
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(blob);
+            img.alt = `Página ${numero}`;
+            li.append(img, `${numero}`);
+            $('miniaturas').appendChild(li);
+          }
           $('barra').style.width = `${(n / total) * 100}%`;
         }
 
@@ -150,12 +165,13 @@
         $('descargar').click();
 
         const mb = (bytes / 1048576).toFixed(1);
-        let texto = `Listo: ${total} páginas, ${mb} MB. Se descargó ${nombre}.`;
+        let texto = `Listo: ${numero} páginas, ${mb} MB. Se descargó ${nombre}.`;
+        if (horizontales && partir) texto += ` Se partieron ${horizontales} pliegos en dos: revisa en las miniaturas que el corte quede en el lomo.`;
         if (bytes > 15 * 1048576) texto += ' Pesa bastante: si la sala tarda en pasar las páginas, conviértela de nuevo en calidad «Liviana».';
-        if (horizontales > total / 2) texto += ' Ojo: casi todas las páginas son horizontales; parece exportado en "pliegos". Expórtalo con páginas sueltas.';
+        if (horizontales > total / 2 && !partir) texto += ' Ojo: casi todas las hojas son horizontales (pliegos). Marca «Partir los pliegos» y conviértela de nuevo.';
         $('listo-texto').textContent = texto;
         $('carpeta').textContent = `revistas\\${id}\\`;
-        $('linea').textContent = `"paginas": ${total}`;
+        $('linea').textContent = `"paginas": ${numero}`;
         $('listo').hidden = false;
       } catch (error) {
         mostrarError('No se pudo convertir el PDF: ' + error.message);

@@ -360,8 +360,10 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
 
 Cada revista puede llevar sus páginas para hojearla dentro de las gafas:
 
-1. Abre `herramientas/paginas.html` en el computador, elige la revista y su **PDF completo** (exportado con páginas
-   sueltas, no en pliegos de dos páginas) y toca **Convertir**. Se descarga `<id>-paginas.zip`.
+1. Abre `herramientas/paginas.html` en el computador, elige la revista y su **PDF completo** y toca **Convertir**.
+   Sirve el PDF exportado de Canva/Word o la revista impresa **escaneada con el celular** (Adobe Scan). Si viene en
+   pliegos (la revista abierta, dos páginas por hoja), la casilla «Partir los pliegos» los corta por el lomo.
+   Se descarga `<id>-paginas.zip`.
 2. Descomprímelo dentro de `revistas\<id>\`: queda la carpeta `paginas` con `1.jpg`, `2.jpg`… (la 1 es la portada).
 3. En `revistas.json` agrega a esa revista `"paginas": 12` (el número que indica la herramienta, sin comillas) y publica.
 
@@ -371,7 +373,9 @@ En la galería, la cartela del cuadro dice "revista de N páginas" y junto al vi
   **«Alejar»** vuelve a la doble página.
 - Las **flechas amarillas** pasan la página (o la doble página). **«Ver video»** salta al video del equipo.
 
-Peso: unas 300–500 KB por página en calidad normal; una revista de 12 páginas ≈ 5 MB. Si es muy larga, usa la calidad «Liviana».
+Las dos revistas de ejemplo ya tienen sus páginas (escaneadas): `ejemplo` (12 páginas) y `ejemplo-moda` (16).
+
+Peso: unas 200–450 KB por página en calidad normal; una revista de 12 páginas ≈ 3,5 MB. Si es muy larga, usa la calidad «Liviana».
 
 ### Videos 360°
 
