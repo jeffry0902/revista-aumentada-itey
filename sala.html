@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-  <title>Sala virtual · Revista Aumentada ITEY</title>
+  <title>Galería virtual · Revista Aumentada ITEY</title>
   <meta name="theme-color" content="#13204a">
   <link rel="icon" href="img/favicon.png">
   <link rel="stylesheet" href="css/estilos.css">
@@ -20,23 +20,49 @@
            loading-screen="enabled: false">
     <a-assets timeout="15000"></a-assets>
 
-    <!-- Sala: cielo oscuro, piso y pared circular con los colores del ITEY -->
+    <!-- Fondo de respaldo (la galeria la arma js/sala.js segun cuantas revistas haya) -->
     <a-sky color="#0b1430"></a-sky>
-    <a-circle id="piso" rotation="-90 0 0" radius="9" material="shader: flat; color: #1b2a5c"></a-circle>
-    <a-ring rotation="-90 0 0" position="0 0.01 0" radius-inner="3.05" radius-outer="3.15" material="shader: flat; color: #ffd21f"></a-ring>
-    <a-cylinder position="0 2 0" radius="6.5" height="4" open-ended="true"
-                material="side: back; shader: flat; color: #13204a"></a-cylinder>
+    <a-entity light="type: ambient; color: #fff8ec; intensity: 0.75"></a-entity>
+    <a-entity light="type: directional; color: #fff; intensity: 0.55" position="0.4 3 0.8"></a-entity>
 
-    <a-entity id="contenido"></a-entity>
+    <!-- Galeria: paredes, piso, techo, cuadros y atril con la instruccion -->
+    <a-entity id="galeria">
+      <a-entity id="contenido"></a-entity>
+    </a-entity>
+
+    <!-- Penumbra de "modo cine": oscurece la galeria mientras se ve un video o se lee una revista -->
+    <a-entity id="penumbra" visible="false">
+      <a-sphere radius="2.9" segments-width="24" segments-height="12"
+                material="shader: flat; color: #04060d; opacity: 0.84; transparent: true; side: back; depthWrite: false"></a-sphere>
+      <a-plane width="5.8" height="5.8" rotation="-90 0 0" position="0 0.012 0" segments-width="8" segments-height="8"
+               material="shader: flat; color: #04060d; opacity: 0.84; transparent: true; depthWrite: false"></a-plane>
+    </a-entity>
+
+    <!-- Videos 360°: el visitante queda dentro del video -->
+    <a-videosphere id="esfera-360" radius="20" visible="false"></a-videosphere>
 
     <!-- Pantalla gigante del video (oculta hasta elegir una revista) -->
     <a-entity id="pantalla" visible="false">
-      <a-plane id="pantalla-fondo" material="shader: flat; color: #000; opacity: 0.85; transparent: true" position="0 0 -0.02"></a-plane>
+      <a-plane id="pantalla-fondo" material="shader: flat; color: #000" position="0 0 -0.02"></a-plane>
       <a-video id="pantalla-video" src="#video-sala" material="shader: flat"></a-video>
       <a-image id="pantalla-titulo" material="shader: flat; transparent: true"></a-image>
       <a-image id="boton-volver" class="boton-3d" material="shader: flat; transparent: true"></a-image>
       <a-image id="boton-repetir" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="boton-leer" class="boton-3d" material="shader: flat; transparent: true" visible="false"></a-image>
       <a-image id="pantalla-aviso" material="shader: flat; transparent: true" visible="false"></a-image>
+    </a-entity>
+
+    <!-- Lector de la revista completa: paginas a doble cara, se pasan con la mirada -->
+    <a-entity id="lector" visible="false">
+      <a-image id="lector-titulo" material="shader: flat; transparent: true"></a-image>
+      <a-image id="pagina-1" material="shader: flat"></a-image>
+      <a-image id="pagina-2" material="shader: flat"></a-image>
+      <a-image id="lector-anterior" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="lector-siguiente" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="lector-volver" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="lector-video" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="lector-alejar" class="boton-3d" material="shader: flat; transparent: true"></a-image>
+      <a-image id="lector-aviso" material="shader: flat; transparent: true" visible="false"></a-image>
     </a-entity>
 
     <!-- Camara con cursor de mirada: mirar algo 2 segundos lo selecciona -->
@@ -61,7 +87,7 @@
   <div id="entrada" class="sala-capa">
     <div class="sala-capa__caja">
       <img src="img/logo-itey.png" alt="ITEY" class="sala-logo">
-      <h1>Sala virtual</h1>
+      <h1>Galería virtual</h1>
       <p class="sala-sub">Revista Aumentada · <span id="evento">Feria de la Ciencia 2026</span></p>
       <p id="estado-carga" class="sala-estado">Cargando revistas…</p>
       <div class="sala-botones">
@@ -74,8 +100,9 @@
       <ol class="sala-pasos">
         <li>Sube el <strong>volumen</strong> y el <strong>brillo</strong> del celular.</li>
         <li>Toca <strong>Entrar con gafas</strong> y pon el celular <strong>acostado</strong> dentro de las gafas.</li>
-        <li>Gira la cabeza para recorrer la sala. <strong>Mira una portada 2 segundos</strong> para ver su video.</li>
-        <li>Para salir del video, <strong>mira «Volver» 2 segundos</strong>.</li>
+        <li>Gira la cabeza para recorrer la galería. <strong>Mira fijo una portada 2 segundos</strong> para ver su video.</li>
+        <li>Si la revista tiene páginas, mira <strong>«Leer revista»</strong> para hojearla completa.</li>
+        <li>Para salir, <strong>mira «Volver» 2 segundos</strong>.</li>
       </ol>
       <a class="sala-volver" href="./">‹ Volver al inicio</a>
     </div>

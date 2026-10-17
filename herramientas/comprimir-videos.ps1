@@ -12,6 +12,10 @@
 
   Uso en lote (sin -Nombre): comprime todos los videos de una carpeta y conserva sus nombres.
     powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "E:\ruta\originales" -Salida "E:\ruta\comprimidos"
+
+  Videos 360 (exportados de la app de la camara 360 como "equirectangular", 2:1):
+  agrega -Video360. Quedan de 2880x1440 a ~5 Mbit/s (~38 MB por minuto): en las
+  gafas cada ojo ve solo un pedazo del video, asi que necesita mas pixeles.
 #>
 param(
   [Parameter(Mandatory = $true)] [string]$Entrada,
@@ -19,7 +23,9 @@ param(
   # Nombre fijo para el archivo de salida (sin extension). Exige un solo video en -Entrada.
   [string]$Nombre = '',
   # 600 kbit/s de video + 64 kbit/s de audio = ~7,5 MB en 90 s.
-  [int]$KbpsVideo = 600
+  [int]$KbpsVideo = 600,
+  # Video 360 equirectangular: conserva la proporcion 2:1 a 2880x1440 y sube la calidad.
+  [switch]$Video360
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,6 +60,17 @@ if ($Nombre -and @($videos).Count -gt 1) {
 
 # Lado corto a 720 px sin agrandar videos mas pequenos; -2 mantiene la proporcion con ancho/alto par.
 $escala = "scale='if(gt(iw,ih),-2,trunc(min(720,iw)/2)*2)':'if(gt(iw,ih),trunc(min(720,ih)/2)*2,-2)'"
+$audio = '64k'
+$canales = 1
+$topeMB = 8
+if ($Video360) {
+  # Ancho maximo 2880 (alto 1440) sin agrandar; el audio queda en estereo.
+  $escala = "scale='min(2880,iw)':-2"
+  if (-not $PSBoundParameters.ContainsKey('KbpsVideo')) { $KbpsVideo = 5000 }
+  $audio = '128k'
+  $canales = 2
+  $topeMB = 45
+}
 $maxrate = "$($KbpsVideo)k"
 $bufsize = "$($KbpsVideo * 2)k"
 
@@ -68,7 +85,7 @@ foreach ($v in $videos) {
     -vf $escala -fpsmax 30 `
     -c:v libx264 -preset slow -crf 26 -maxrate $maxrate -bufsize $bufsize `
     -profile:v high -pix_fmt yuv420p -g 60 `
-    -c:a aac -b:a 64k -ac 1 -ar 44100 `
+    -c:a aac -b:a $audio -ac $canales -ar 44100 `
     -movflags +faststart $destino
 
   if ($LASTEXITCODE -ne 0) {
@@ -81,7 +98,7 @@ foreach ($v in $videos) {
   $avisos = @()
   if ($segundos -gt 95) { $avisos += 'dura mas de 90 s' }
   if ($segundos -lt 30) { $avisos += 'muy corto' }
-  if ($mb -gt 8) { $avisos += 'pesa mas de 8 MB (baja -KbpsVideo)' }
+  if ($mb -gt $topeMB) { $avisos += "pesa mas de $topeMB MB (baja -KbpsVideo)" }
   $resumen += [pscustomobject]@{ Archivo = Split-Path $destino -Leaf; Segundos = $segundos; MB = $mb; Aviso = ($avisos -join ', ') }
 }
 

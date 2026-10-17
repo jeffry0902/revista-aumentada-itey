@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Páginas de la revista · Revista Aumentada ITEY</title>
+  <link rel="icon" href="../img/favicon.png">
+  <link rel="stylesheet" href="../css/estilos.css">
+  <style>
+    .fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+    select, input[type=file] { font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); background: #fff; }
+    select { font-weight: 700; }
+    .progreso { height: 12px; border-radius: 999px; background: var(--azul-100); overflow: hidden; }
+    .progreso div { height: 100%; width: 0; background: var(--azul-800); transition: width .2s; }
+    .miniaturas { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin: 16px 0; padding: 0; list-style: none; }
+    .miniaturas li { text-align: center; font-size: .8rem; color: var(--texto-suave); }
+    .miniaturas img { width: 100%; border-radius: 4px; box-shadow: 0 1px 4px rgb(0 0 0 / .25); background: #fff; }
+    .listo { padding: 16px; border-left: 5px solid #16a34a; }
+    .ojo { color: #a16207; font-weight: 700; }
+    code { background: var(--azul-50); padding: 1px 6px; border-radius: 6px; }
+    pre { background: var(--azul-50); padding: 10px 14px; border-radius: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header class="franja franja--compacta">
+    <div class="franja__contenido">
+      <img class="franja__logo" src="../img/logo-itey.png" alt="ITEY">
+      <div>
+        <h1>Páginas de la revista</h1>
+        <p>Herramienta del docente · convierte el PDF en las páginas que se leen en la sala virtual</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenido">
+    <p>Elige la revista y su PDF <strong>completo</strong>: exportado de Canva, Word o Publisher, o escaneado
+      con el celular (Adobe Scan, CamScanner). Cada página se convierte en una imagen
+      <code>1.jpg</code>, <code>2.jpg</code>… La página 1 es la portada.</p>
+    <p>Si el PDF trae <strong>pliegos</strong> (dos páginas en una hoja horizontal, como cuando se escanea la revista
+      abierta), deja marcada la casilla y cada pliego se parte en dos páginas por el medio.</p>
+
+    <div class="fila">
+      <label>Revista <select id="revista"></select></label>
+      <label>Calidad
+        <select id="calidad">
+          <option value="1800">Normal (1800 px de alto)</option>
+          <option value="1400">Liviana (1400 px, para revistas largas)</option>
+        </select>
+      </label>
+      <label><input id="partir" type="checkbox" checked> Partir los pliegos en dos páginas</label>
+    </div>
+    <div class="fila">
+      <input id="archivo" type="file" accept="application/pdf,.pdf">
+      <button id="convertir" class="boton" type="button" disabled>Convertir</button>
+    </div>
+
+    <div id="error" class="aviso-error" hidden></div>
+
+    <div id="estado" hidden>
+      <p id="estado-texto">Convirtiendo…</p>
+      <div class="progreso"><div id="barra"></div></div>
+    </div>
+
+    <ul id="miniaturas" class="miniaturas"></ul>
+
+    <div id="listo" class="tarjeta listo" hidden>
+      <p id="listo-texto"></p>
+      <p><a id="descargar" class="boton" href="#">Descargar de nuevo</a></p>
+      <ol>
+        <li>Descomprime el ZIP dentro de la carpeta <code id="carpeta"></code>: queda una carpeta <code>paginas</code> con las imágenes.</li>
+        <li>En <code>revistas.json</code>, agrega a esa revista la línea (sin comillas en el número):
+          <pre id="linea"></pre></li>
+        <li>Publica (paso 8 del README). En la sala virtual, la revista muestra el botón <strong>Leer revista</strong>.</li>
+      </ol>
+    </div>
+  </main>
+
+  <script type="module">
+    import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs';
+    import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
+    import { cargarDatos, esc } from '../js/datos.js';
+
+    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+
+    const $ = id => document.getElementById(id);
+    const MAX_PAGINAS = 80; // el mismo tope que revisa js/datos.js
+    let urlZip = null;
+
+    try {
+      const datos = await cargarDatos('../');
+      const revistas = datos.camaras.flatMap(c => c.revistas);
+      if (!revistas.length) throw new Error('revistas.json no tiene revistas todavía.');
+      $('revista').innerHTML = revistas.map(r => `<option value="${esc(r.id)}">${esc(r.id)} · ${esc(r.titulo)}</option>`).join('');
+      $('archivo').addEventListener('change', () => { $('convertir').disabled = !$('archivo').files.length; });
+      $('convertir').addEventListener('click', convertir);
+    } catch (error) {
+      mostrarError(error.message);
+    }
+
+    async function convertir() {
+      const id = $('revista').value;
+      const alto = Number($('calidad').value);
+      const archivo = $('archivo').files[0];
+      const partir = $('partir').checked;
+      $('error').hidden = true;
+      $('listo').hidden = true;
+      $('miniaturas').innerHTML = '';
+      $('convertir').disabled = true;
+      $('estado').hidden = false;
+      $('barra').style.width = '0';
+
+      try {
+        const pdf = await pdfjs.getDocument({ data: await archivo.arrayBuffer() }).promise;
+        const total = pdf.numPages;
+        const zip = new JSZip();
+        let bytes = 0, horizontales = 0, numero = 0;
+
+        for (let n = 1; n <= total; n++) {
+          $('estado-texto').textContent = `Convirtiendo hoja ${n} de ${total}…`;
+          const pagina = await pdf.getPage(n);
+          const base = pagina.getViewport({ scale: 1 });
+          const pliego = base.width > base.height * 1.1;
+          if (pliego) horizontales++;
+          // Alto fijo. Un pliego que se parte da dos paginas de ese alto; uno sin partir se limita a 2400 px de ancho.
+          const escala = pliego && partir ? alto / base.height : Math.min(alto / base.height, 2400 / base.width);
+          const vista = pagina.getViewport({ scale: escala });
+          const lienzo = document.createElement('canvas');
+          lienzo.width = Math.round(vista.width);
+          lienzo.height = Math.round(vista.height);
+          const ctx = lienzo.getContext('2d');
+          ctx.fillStyle = '#fff'; // las paginas sin fondo quedan blancas y no negras
+          ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+          await pagina.render({ canvasContext: ctx, viewport: vista }).promise;
+
+          const mitad = Math.round(lienzo.width / 2);
+          const partes = pliego && partir ? [[0, mitad], [mitad, lienzo.width - mitad]] : [[0, lienzo.width]];
+          for (const [x, ancho] of partes) {
+            numero++;
+            if (numero > MAX_PAGINAS) throw new Error(`La revista pasa de ${MAX_PAGINAS} páginas, el máximo de la sala.`);
+            const recorte = document.createElement('canvas');
+            recorte.width = ancho;
+            recorte.height = lienzo.height;
+            recorte.getContext('2d').drawImage(lienzo, x, 0, ancho, lienzo.height, 0, 0, ancho, lienzo.height);
+            const blob = await new Promise(r => recorte.toBlob(r, 'image/jpeg', 0.82));
+            bytes += blob.size;
+            zip.file(`paginas/${numero}.jpg`, blob);
+
+            const li = document.createElement('li');
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(blob);
+            img.alt = `Página ${numero}`;
+            li.append(img, `${numero}`);
+            $('miniaturas').appendChild(li);
+          }
+          $('barra').style.width = `${(n / total) * 100}%`;
+        }
+
+        $('estado-texto').textContent = 'Armando el ZIP…';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        if (urlZip) URL.revokeObjectURL(urlZip);
+        urlZip = URL.createObjectURL(zipBlob);
+        const nombre = `${id}-paginas.zip`;
+        $('descargar').href = urlZip;
+        $('descargar').download = nombre;
+        $('descargar').click();
+
+        const mb = (bytes / 1048576).toFixed(1);
+        let texto = `Listo: ${numero} páginas, ${mb} MB. Se descargó ${nombre}.`;
+        if (horizontales && partir) texto += ` Se partieron ${horizontales} pliegos en dos: revisa en las miniaturas que el corte quede en el lomo.`;
+        if (bytes > 15 * 1048576) texto += ' Pesa bastante: si la sala tarda en pasar las páginas, conviértela de nuevo en calidad «Liviana».';
+        if (horizontales > total / 2 && !partir) texto += ' Ojo: casi todas las hojas son horizontales (pliegos). Marca «Partir los pliegos» y conviértela de nuevo.';
+        $('listo-texto').textContent = texto;
+        $('carpeta').textContent = `revistas\\${id}\\`;
+        $('linea').textContent = `"paginas": ${numero}`;
+        $('listo').hidden = false;
+      } catch (error) {
+        mostrarError('No se pudo convertir el PDF: ' + error.message);
+      } finally {
+        $('estado').hidden = true;
+        $('convertir').disabled = false;
+      }
+    }
+
+    function mostrarError(texto) {
+      $('error').textContent = texto;
+      $('error').hidden = false;
+    }
+  </script>
+</body>
+</html>
