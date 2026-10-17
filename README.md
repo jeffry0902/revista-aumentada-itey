@@ -20,6 +20,8 @@ en el que los estudiantes explican su artículo. No hay que instalar ninguna app
 | `ver.html?id=11A-01` | Solo el video de una revista. **A esta página llevan los QR impresos en las revistas** (plan B sin cámara AR). |
 | `herramientas/compilar.html` | Para el docente: genera el archivo de reconocimiento de las portadas. |
 | `herramientas/qr.html` | Para el docente: genera e imprime los QR. |
+| `sala.html` | Galería virtual para gafas VR: las portadas como cuadros, sus videos y las revistas completas. |
+| `herramientas/paginas.html` | Para el docente: convierte el PDF de una revista en las páginas que se leen en la galería. |
 
 El visitante:
 1. Toca **Abrir cámara** (o escanea el QR de la cámara en el cartel de cualquier stand).
@@ -41,7 +43,8 @@ revista-aumentada-itey/
 ├─ revistas/
 │  ├─ 11A-01/
 │  │  ├─ portada.jpg                 la imagen que reconoce la cámara
-│  │  └─ video.mp4                   el video comprimido
+│  │  ├─ video.mp4                   el video comprimido
+│  │  └─ paginas/1.jpg, 2.jpg…       (opcional) la revista completa para la galería virtual
 │  ├─ 11A-02/
 │  │  ├─ portada.jpg
 │  │  └─ video.mp4
@@ -51,6 +54,7 @@ revista-aumentada-itey/
 └─ herramientas/
    ├─ compilar.html                  compila las portadas → targets/11.mind
    ├─ qr.html                        hoja de QR para imprimir (PNG/SVG)
+   ├─ paginas.html                   PDF de la revista → revistas/<id>/paginas/
    ├─ servidor-https.mjs             servidor de prueba para el celular por wifi
    └─ comprimir-videos.ps1           compresión de videos con ffmpeg
 ```
@@ -134,6 +138,8 @@ MindAR reconoce por "puntos de interés": esquinas, bordes, letras y texturas.
 | `curso` | El curso que sale en la tarjeta de la cámara y agrupa la lista de inicio. |
 | `equipo` | Nombre del equipo. **Nada de nombres de estudiantes.** |
 | `titulo` | Título del artículo. |
+| `paginas` | *(Opcional)* Cuántas páginas tiene la revista completa en `revistas/<id>/paginas/`. Número sin comillas. Ver "Revista completa en la galería". |
+| `video360` | *(Opcional)* `true` si el video es 360°. Ver "Videos 360°". |
 
 Otros campos de `revistas.json`:
 - `camaras`: la lista de cámaras. Hoy hay una: `"id": "11"` (su archivo es `targets/11.mind`) y `"nombre": "Grado 11°"`.
@@ -324,24 +330,84 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 | 22 de octubre | Pruebas finales en celulares (lista de chequeo). |
 | 23 de octubre | Feria, 8:00 a. m. – 12:00 m. |
 
-## Sala virtual con gafas (`sala.html`)
+## Galería virtual con gafas (`sala.html`)
 
 Para el stand con gafas de realidad virtual tipo VR Box (el celular va adentro):
-el visitante queda en una sala circular con **todas las portadas a su alrededor**. Mira una portada
-**2 segundos** y su video se abre en una pantalla gigante, en modo cine. Mira **«Volver»** 2 segundos para
-regresar. Al terminar un video, la sala vuelve sola a los 6 segundos.
+el visitante queda en el centro de una **galería de arte**: paredes claras con zócalo azul y filete amarillo,
+piso de madera, techo con claraboya y un riel de luces. **Cada portada es un cuadro enmarcado** con su luz y una
+cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucción** ("Mira fijo una portada
+2 segundos y se reproduce su video") y un letrero colgado del techo con el nombre de la feria.
 
+- **Mirar fijo un cuadro 2 segundos** abre su video en una pantalla gigante y la galería queda en penumbra (modo cine).
+  Mirar **«Volver»** 2 segundos regresa. Al terminar un video, la galería vuelve sola a los 6 segundos.
+- Si la revista tiene sus páginas, junto al video aparece **«Leer revista»** (ver abajo).
 - Dirección: `https://jeffry0902.github.io/revista-aumentada-itey/sala.html` (también está en la página de inicio).
-- No hay nada que configurar: usa las mismas carpetas `revistas/<id>/` y `revistas.json`. Cada revista nueva aparece sola.
-  Caben bien hasta unas 16 revistas en el círculo completo.
+- No hay nada que configurar: usa las mismas carpetas `revistas/<id>/` y `revistas.json`. Cada revista nueva aparece sola
+  como un cuadro. La sala tiene 12 paredes; con más de 12 revistas se agranda para que cada cuadro tenga su pared
+  (probado con 14). Si sobran paredes, la del fondo lleva el escudo del colegio.
 - **Uso en el stand:** abrir `sala.html` en el celular de las gafas, tocar **Entrar con gafas** (ese toque habilita
   el sonido) y meter el celular **acostado** en las gafas. Para el siguiente visitante no hay que tocar nada.
   **Ver sin gafas** sirve para probar moviendo el celular; en el computador se arrastra con el mouse y se hace clic.
-- **Gafas:** comprar un modelo "compatible hasta 7 pulgadas" (los celulares actuales miden 6,5–6,9"). Los celulares
-  de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
+- **Gafas:** si se ve un poco borroso es porque el celular es más grande que lo que admiten las gafas (por ejemplo,
+  un 6,9" en unas gafas para 6"): las lentes no quedan centradas en cada mitad de la pantalla. Con un celular de
+  6,1–6,5" se ve más nítido; las ruedas de las gafas (distancia entre lentes y enfoque) también ayudan.
+  Los celulares de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
 - Para que suene: volumen alto del celular o audífonos bluetooth. Toallitas para limpiar entre visitantes y sesiones de 1–2 minutos.
-- Probado en el computador con 4 revistas reales y con 16 simuladas (selección, video, volver, fin de video).
-  **Falta la prueba con las gafas reales** en el celular del stand.
+- Prueba con las gafas reales (17 de octubre, sala anterior): se ve bien. La galería, el lector y el modo 360° se
+  probaron en el computador con 4 y con 14 revistas. **Falta probar la galería nueva con las gafas.**
+
+### Revista completa en la galería
+
+Cada revista puede llevar sus páginas para hojearla dentro de las gafas:
+
+1. Abre `herramientas/paginas.html` en el computador, elige la revista y su **PDF completo** (exportado con páginas
+   sueltas, no en pliegos de dos páginas) y toca **Convertir**. Se descarga `<id>-paginas.zip`.
+2. Descomprímelo dentro de `revistas\<id>\`: queda la carpeta `paginas` con `1.jpg`, `2.jpg`… (la 1 es la portada).
+3. En `revistas.json` agrega a esa revista `"paginas": 12` (el número que indica la herramienta, sin comillas) y publica.
+
+En la galería, la cartela del cuadro dice "revista de N páginas" y junto al video sale **«Leer revista»**:
+- La revista se abre **a doble página**, como en papel: la portada sola, luego 2–3, 4–5…
+- **Mirar fijo una página la acerca**: queda grande, casi de piso a techo, y se lee **moviendo la cabeza**.
+  **«Alejar»** vuelve a la doble página.
+- Las **flechas amarillas** pasan la página (o la doble página). **«Ver video»** salta al video del equipo.
+
+Peso: unas 300–500 KB por página en calidad normal; una revista de 12 páginas ≈ 5 MB. Si es muy larga, usa la calidad «Liviana».
+
+### Videos 360°
+
+Si un equipo graba su video con una **cámara 360°**, el visitante queda *dentro* del video y puede mirar
+alrededor, como en los videos VR de YouTube. Al mirar el cuadro, la galería desaparece y el visitante queda en el
+centro del video; el "frente" del video queda hacia el cuadro elegido y los botones «Volver» y «Repetir» quedan
+abajo, a la altura del pecho.
+
+1. Exportar el video desde la app de la cámara como **360 equirectangular** (imagen 2:1, por ejemplo 5760×2880), sin reencuadrar.
+2. Comprimirlo con `-Video360` (queda en 2880×1440, ~38 MB por minuto):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\herramientas\comprimir-videos.ps1 -Entrada "E:\ruta\11B - Los Newtonianos" -Salida .\revistas\11B-01 -Nombre video -Video360
+   ```
+3. En `revistas.json` agregar a esa revista `"video360": true`.
+
+Los videos 360° pesan mucho más: mejor de **30 a 60 segundos**. La cámara AR y `ver.html` muestran ese mismo video
+plano y deformado, así que un video 360° conviene para una revista que se vea sobre todo en la galería.
+
+#### Cómo grabar un video 360° (guía para los estudiantes)
+
+Los videos que ya tenemos son planos: se ven en la pantalla gigante, pero no se pueden convertir en 360° porque la
+cámara solo grabó lo que tenía al frente. Para el efecto VR hay que grabarlos así desde el principio:
+
+- **Cámara:** una cámara 360° de dos lentes (Insta360 X3/X4, Ricoh Theta, Kandao QooCam o similar). Un celular solo no graba 360°.
+- **La cámara es la cabeza del visitante:** en trípode o monopié, a la altura de los ojos (1,5–1,6 m) y **quieta**.
+  Nada de caminar con la cámara ni moverla: en las gafas eso marea.
+- **La acción alrededor:** el equipo se para a **1–2 m** de la cámara (más cerca se deforma y se nota la unión de las
+  dos lentes). Quien explica mira a uno de los lentes: ese será el **frente**. El experimento puede pasar a los lados
+  o por encima (un balón en tiro parabólico que vuela sobre el visitante, ondas en un charco a sus pies).
+- **Nadie escondido detrás del trípode** si no es parte de la escena: el visitante va a mirar para atrás.
+- **Luz pareja** (de día o con todas las luces): la cámara ve también las lámparas y las ventanas.
+- **Sonido:** micrófono de solapa o grabar la voz aparte; el micrófono de la cámara capta todo el lugar.
+- **Planos largos y pocos cortes** (de 10 a 20 s cada uno). Los textos o títulos, grandes y en el frente.
+- Duración total de 30 a 60 s. Exportar en la máxima resolución de la cámara como equirectangular.
+
+Sin cámara 360°, el efecto se puede probar con escenas hechas en computador (Blender exporta video 360°).
 
 ## Privacidad
 

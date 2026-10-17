@@ -10,6 +10,8 @@
 //   - cada revista tiene su carpeta: revistas/<id>/portada.jpg y revistas/<id>/video.mp4
 //   - el archivo de reconocimiento de una camara es targets/<id de la camara>.mind
 //   - el targetIndex de cada revista es su posicion dentro de la camara (0, 1, 2...)
+//   - si la revista trae "paginas": N, sus paginas son revistas/<id>/paginas/1.jpg ... N.jpg
+//     (las genera herramientas/paginas.html a partir del PDF)
 
 const CAMPOS = ['id', 'curso', 'equipo', 'titulo'];
 const SEGURO = /^[A-Za-z0-9-]+$/; // va dentro de direcciones y nombres de archivo
@@ -35,6 +37,7 @@ export async function cargarDatos(base = '') {
     for (const revista of camara.revistas) {
       revista.objetivo = `revistas/${revista.id}/portada.jpg`;
       revista.video = `revistas/${revista.id}/video.mp4`;
+      revista.pagina = n => `revistas/${revista.id}/paginas/${n}.jpg`;
     }
   }
   return datos;
@@ -54,6 +57,12 @@ function validar(datos) {
       }
       if (!SEGURO.test(revista.id)) {
         throw new Error(`El id "${revista.id}" solo puede tener letras, números y guiones (va dentro de la dirección del QR).`);
+      }
+      if (revista.paginas !== undefined && !(Number.isInteger(revista.paginas) && revista.paginas >= 1 && revista.paginas <= 80)) {
+        throw new Error(`En la revista ${revista.id}, "paginas" debe ser un número entero (sin comillas) entre 1 y 80.`);
+      }
+      if (revista.video360 !== undefined && typeof revista.video360 !== 'boolean') {
+        throw new Error(`En la revista ${revista.id}, "video360" debe ser true o false (sin comillas).`);
       }
       if (vistos.has(revista.id)) throw new Error(`El id "${revista.id}" está repetido.`);
       vistos.add(revista.id);
