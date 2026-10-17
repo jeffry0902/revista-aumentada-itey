@@ -3,9 +3,16 @@
 // Carga targets/<camara>.mind (todas las portadas de esa camara), crea una ancla
 // por revista en el orden de revistas.json y reproduce el video de la que se detecte.
 // Con una sola camara en revistas.json, ar.html sin parametros abre esa.
+//
+// Si la revista trae sus paginas, la tarjeta muestra «Leer revista». En el modo
+// gafas (pantalla partida, js/ar-gafas.js) no hay toques: debajo de la portada
+// aparece un boton 3D «Leer revista» que se elige mirandolo 2 segundos, y las
+// paginas se ven encima de la portada impresa, con flechas para pasarlas.
 
 import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTargets, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
+import { abrirLector } from './lector.js';
+import { prepararGafas, entrarGafas, gafasActivas, textoGafas } from './ar-gafas.js';
 
 const $ = id => document.getElementById(id);
 const videoAR = $('video-ar');
@@ -14,12 +21,19 @@ const videoGrande = $('video-grande');
 // Si la camara deja de ver la portada, el video espera este tiempo antes de
 // pausarse: en celulares modestos el anclaje parpadea y el video tartamudearia.
 const ESPERA_PAUSA_MS = 1500;
+const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '#ffffff' };
+const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 
 let camara = null;
 let escena = null;
 let sistema = null;      // mindar-image-system, disponible despues de arReady
 let dimensiones = [];    // [ancho, alto] de cada portada, para ajustar el video
 const planos = [];       // un plano de video por revista, en el orden del JSON
+const botones3d = [];    // por revista: { leer, pagina, anterior, siguiente, video } (modo gafas)
+let camara3d = null;
+let lectura = null;      // { i, pagina } mientras se hojea una revista con las gafas
+let lectorAbierto = false; // lector en pantalla (sin gafas)
+const aspectos = new Map();
 let actual = -1;         // revista cargada en el reproductor
 let visible = -1;        // revista que la camara esta viendo (-1 = ninguna)
 let sonido = false;      // el visitante ya toco la pantalla
@@ -101,12 +115,24 @@ function crearEscena(targets) {
   escena.setAttribute('vr-mode-ui', 'enabled: false');
   escena.setAttribute('device-orientation-permission-ui', 'enabled: false');
   escena.setAttribute('loading-screen', 'enabled: false');
+  escena.setAttribute('pantalla-partida', '');
 
-  const camara3d = document.createElement('a-camera');
+  camara3d = document.createElement('a-camera');
   camara3d.setAttribute('position', '0 0 0');
   camara3d.setAttribute('look-controls', 'enabled: false');
   camara3d.setAttribute('wasd-controls', 'enabled: false');
+  // Punto de mira del modo gafas: el centro de la camara. Solo apunta a los
+  // botones 3D que tienen la clase .mirable (unicamente con las gafas puestas).
+  // Las portadas miden unas 1000 unidades de MindAR: el rayo tiene que llegar lejos.
+  camara3d.setAttribute('cursor', 'fuse: true; fuseTimeout: 1800; rayOrigin: entity');
+  camara3d.setAttribute('raycaster', 'objects: .mirable; far: 1000000; interval: 100');
   escena.appendChild(camara3d);
+  const texturas = {
+    leer: lienzoBoton('Leer revista', COLOR.rojo, COLOR.blanco),
+    video: lienzoBoton('▶  Ver video', COLOR.blanco, COLOR.azul),
+    anterior: lienzoFlecha('‹'),
+    siguiente: lienzoFlecha('›'),
+  };
 
   camara.revistas.forEach((revista, i) => {
     const ancla = document.createElement('a-entity');
@@ -118,6 +144,19 @@ function crearEscena(targets) {
     plano.setAttribute('position', '0 0 0.01');
     plano.setAttribute('visible', 'false');
     ancla.appendChild(plano);
+    const b = {
+      pagina: crear('a-plane', { material: 'shader: flat', visible: 'false', position: '0 0 0.02' }),
+      leer: botonMirable(texturas.leer, 0.6, 0.6 * 160 / 560),
+      video: botonMirable(texturas.video, 0.6, 0.6 * 160 / 560),
+      anterior: botonMirable(texturas.anterior, 0.26, 0.26),
+      siguiente: botonMirable(texturas.siguiente, 0.26, 0.26),
+    };
+    b.leer.addEventListener('click', () => leerConGafas(i));
+    b.video.addEventListener('click', () => salirLectura(true));
+    b.anterior.addEventListener('click', () => hojear(-1));
+    b.siguiente.addEventListener('click', () => hojear(1));
+    Object.values(b).forEach(el => ancla.appendChild(el));
+    botones3d.push(b);
     ancla.addEventListener('targetFound', () => alEncontrar(i));
     ancla.addEventListener('targetLost', () => alPerder(i));
     escena.appendChild(ancla);
@@ -139,6 +178,8 @@ function alEstarListo() {
   dimensiones = (sistema.controller && sistema.controller.markerDimensions) || [];
   $('cargando').hidden = true;
   $('guia').hidden = false;
+  prepararGafas({ escena, sistema, cursor: camara3d, salir: alSalirGafas });
+  $('boton-gafas').hidden = false;
 
   // Error tipico al preparar la feria: el .mind no corresponde al JSON.
   if (dimensiones.length && dimensiones.length !== camara.revistas.length) {
@@ -156,14 +197,17 @@ function alEncontrar(i) {
   visible = i;
   $('guia').hidden = true;
   pintarTarjeta(i);
+  if (lectura && lectura.i !== i) salirLectura(false); // otra revista: vuelve al video
   if (actual !== i) cargarVideo(i);
-  reproducir();
+  if (!lectura) reproducir();
+  pintarGafas();
   const revista = camara.revistas[i];
   contarEvento(`ar-${revista.id}`, `AR · ${revista.id} · ${revista.titulo}`);
 }
 
 function alPerder(i) {
   if (visible === i) visible = -1;
+  pintarGafas();
   clearTimeout(pausaPendiente);
   pausaPendiente = setTimeout(() => {
     if (visible !== -1) return;
@@ -182,7 +226,7 @@ function cargarVideo(i) {
 // del video anterior ni un rectangulo negro mientras carga.
 videoAR.addEventListener('loadedmetadata', () => ajustarPlano(actual));
 videoAR.addEventListener('playing', () => {
-  if (actual !== -1) planos[actual].setAttribute('visible', 'true');
+  if (actual !== -1 && !lectura) planos[actual].setAttribute('visible', 'true');
 });
 
 // El video cubre la pagina lo mas posible sin salirse: horizontal o vertical.
@@ -201,8 +245,13 @@ function ajustarPlano(i) {
   planos[i].setAttribute('height', String(alto));
 }
 
+// Hay algo encima de la camara (video en grande, lector) o se esta leyendo con las gafas.
+function ocupado() {
+  return !$('pantalla-completa').hidden || lectorAbierto || !!lectura;
+}
+
 async function reproducir() {
-  if (!$('pantalla-completa').hidden || visible === -1) return;
+  if (ocupado() || visible === -1) return;
   videoAR.muted = !sonido;
   try {
     await videoAR.play();
@@ -225,7 +274,7 @@ async function reproducir() {
 function activarSonido() {
   sonido = true;
   videoAR.muted = false;
-  if (visible !== -1 && $('pantalla-completa').hidden) videoAR.play().catch(() => {});
+  if (visible !== -1 && !ocupado()) videoAR.play().catch(() => {});
   pintarBotonSonido();
 }
 document.addEventListener('click', activarSonido);
@@ -260,6 +309,185 @@ $('cerrar-grande').addEventListener('click', () => {
   reproducir();
 });
 
+// ---------- Revista completa en la pantalla (sin gafas) ----------
+
+$('boton-leer').addEventListener('click', () => {
+  if (actual === -1) return;
+  const revista = camara.revistas[actual];
+  videoAR.pause();
+  if (sistema) sistema.pause();
+  lectorAbierto = true;
+  contarEvento(`ar-leer-${revista.id}`, `AR · leer ${revista.id}`);
+  abrirLector(revista, {
+    textoVolver: '‹ Volver a la cámara',
+    alCerrar: () => {
+      lectorAbierto = false;
+      if (sistema) sistema.unpause();
+      reproducir();
+    },
+  });
+});
+
+// ---------- Modo gafas ----------
+
+$('boton-gafas').addEventListener('click', () => {
+  activarSonido(); // este toque es el permiso para que suene dentro de las gafas
+  entrarGafas();
+  contarEvento('ar-gafas', 'AR · modo gafas');
+  pintarGafas();
+});
+
+function alSalirGafas() {
+  salirLectura(false);
+  pintarGafas();
+}
+
+// Muestra los botones 3D que tocan y el mensaje de arriba segun lo que se ve.
+function pintarGafas() {
+  const conGafas = gafasActivas();
+  const elegibles = [];
+  botones3d.forEach((b, i) => {
+    const revista = camara.revistas[i];
+    const aqui = conGafas && visible === i;
+    const leyendo = aqui && lectura && lectura.i === i;
+    const ver = {
+      leer: aqui && !leyendo && !!revista.paginas,
+      video: leyendo,
+      anterior: leyendo && lectura.pagina > 1,
+      siguiente: leyendo && lectura.pagina < revista.paginas,
+    };
+    for (const [nombre, si] of Object.entries(ver)) {
+      b[nombre].setAttribute('visible', si);
+      if (si) elegibles.push(b[nombre]);
+    }
+    b.pagina.setAttribute('visible', !!(lectura && lectura.i === i && conGafas));
+    if (aqui) colocarBotones(i);
+  });
+  document.querySelectorAll('.mirable').forEach(el => el.classList.remove('mirable'));
+  elegibles.forEach(el => el.classList.add('mirable'));
+  const rc = camara3d && camara3d.components.raycaster;
+  if (rc) rc.refreshObjects();
+
+  if (!conGafas) return;
+  if (visible === -1) textoGafas('Apunta a la portada de una revista');
+  else if (lectura) textoGafas(`Página ${lectura.pagina} de ${camara.revistas[lectura.i].paginas} · mira las flechas para pasar`);
+  else if (camara.revistas[visible].paginas) textoGafas('Mira «Leer revista» 2 segundos para hojearla');
+  else textoGafas(camara.revistas[visible].titulo);
+}
+
+// En unidades de MindAR la portada mide 1 de ancho; el alto sale de su proporcion.
+function colocarBotones(i) {
+  const [anchoPortada, altoPortada] = dimensiones[i] || [1, 1.414];
+  const altoP = altoPortada / anchoPortada;
+  const b = botones3d[i];
+  b.leer.setAttribute('position', `0 ${-(altoP / 2 + 0.16)} 0.03`);
+  if (lectura && lectura.i === i) {
+    // La pagina un poco mas grande que la portada, para leerla mejor.
+    const revista = camara.revistas[i];
+    const alto = altoP * 1.15;
+    const ancho = alto / (aspectos.get(revista.pagina(lectura.pagina)) || 1.414);
+    b.pagina.setAttribute('width', ancho);
+    b.pagina.setAttribute('height', alto);
+    b.anterior.setAttribute('position', `${-(ancho / 2 + 0.16)} 0 0.03`);
+    b.siguiente.setAttribute('position', `${ancho / 2 + 0.16} 0 0.03`);
+    b.video.setAttribute('position', `0 ${-(alto / 2 + 0.16)} 0.03`);
+  }
+}
+
+async function leerConGafas(i) {
+  const revista = camara.revistas[i];
+  if (!revista.paginas || !gafasActivas()) return;
+  contarEvento(`ar-leer-${revista.id}`, `AR · leer ${revista.id}`);
+  videoAR.pause();
+  planos[i].setAttribute('visible', 'false');
+  lectura = { i, pagina: 1 };
+  await mostrarPagina();
+}
+
+async function hojear(direccion) {
+  if (!lectura) return;
+  const total = camara.revistas[lectura.i].paginas;
+  lectura.pagina = Math.min(total, Math.max(1, lectura.pagina + direccion));
+  await mostrarPagina();
+}
+
+async function mostrarPagina() {
+  const actualLectura = lectura;
+  const revista = camara.revistas[lectura.i];
+  const src = revista.pagina(lectura.pagina);
+  await medir(src);
+  if (lectura !== actualLectura) return;
+  botones3d[lectura.i].pagina.setAttribute('src', src);
+  pintarGafas();
+  // La siguiente queda descargada para que el cambio sea inmediato.
+  if (lectura.pagina < revista.paginas) medir(revista.pagina(lectura.pagina + 1));
+}
+
+function salirLectura(volverAlVideo) {
+  if (!lectura) return;
+  const i = lectura.i;
+  lectura = null;
+  botones3d[i].pagina.setAttribute('visible', 'false');
+  if (volverAlVideo) reproducir();
+  pintarGafas();
+}
+
+function medir(src) {
+  if (aspectos.has(src)) return Promise.resolve(aspectos.get(src));
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => { aspectos.set(src, img.naturalHeight / img.naturalWidth); resolve(); };
+    img.onerror = () => { aspectos.set(src, 1.414); resolve(); };
+    img.src = src;
+  });
+}
+
+function crear(etiqueta, atributos) {
+  const el = document.createElement(etiqueta);
+  for (const [nombre, valor] of Object.entries(atributos)) el.setAttribute(nombre, valor);
+  return el;
+}
+
+function botonMirable(src, ancho, alto) {
+  const b = crear('a-image', { src, width: ancho, height: alto, visible: 'false', material: 'shader: flat; transparent: true' });
+  b.addEventListener('mouseenter', () => b.setAttribute('scale', '1.15 1.15 1.15'));
+  b.addEventListener('mouseleave', () => b.setAttribute('scale', '1 1 1'));
+  return b;
+}
+
+function lienzo(ancho, alto, dibujar) {
+  const c = document.createElement('canvas');
+  c.width = ancho;
+  c.height = alto;
+  dibujar(c.getContext('2d'));
+  return c.toDataURL('image/png');
+}
+
+function lienzoBoton(texto, fondo, color) {
+  return lienzo(560, 160, ctx => {
+    ctx.fillStyle = fondo;
+    ctx.beginPath();
+    ctx.roundRect(6, 6, 548, 148, 74);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.font = `800 70px ${FUENTE}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(texto, 280, 104, 500);
+  });
+}
+
+function lienzoFlecha(texto) {
+  return lienzo(300, 300, ctx => {
+    ctx.fillStyle = COLOR.amarillo;
+    ctx.beginPath(); ctx.arc(150, 150, 144, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = COLOR.azul;
+    ctx.font = `900 260px ${FUENTE}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(texto, 150, 136);
+  });
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     videoAR.pause();
@@ -284,6 +512,7 @@ function pintarTarjeta(i) {
   $('tarjeta-curso').textContent = revista.curso;
   $('tarjeta-titulo').textContent = revista.titulo;
   $('tarjeta-equipo').textContent = revista.equipo;
+  $('boton-leer').hidden = !revista.paginas;
   $('tarjeta-ar').hidden = false;
   pintarBotonSonido();
 }

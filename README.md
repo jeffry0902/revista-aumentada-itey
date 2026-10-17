@@ -16,7 +16,7 @@ en el que los estudiantes explican su artículo. No hay que instalar ninguna app
 | Página | Para qué |
 |---|---|
 | `index.html` | Inicio: instrucciones, botón **Abrir cámara** y lista de revistas agrupadas por curso. |
-| `ar.html?camara=11` | La cámara con realidad aumentada. **Una sola cámara reconoce las 14 revistas.** Reproduce el video encima de la portada; botón **Ver video** para verlo en grande. |
+| `ar.html?camara=11` | La cámara con realidad aumentada. **Una sola cámara reconoce las 14 revistas.** Reproduce el video encima de la portada; botón **Ver video** para verlo en grande y **Leer revista** si la revista tiene páginas. Botón **Modo gafas** para usarla con las gafas VR. |
 | `ver.html?id=11A-01` | Solo el video de una revista. **A esta página llevan los QR impresos en las revistas** (plan B sin cámara AR). |
 | `herramientas/compilar.html` | Para el docente: genera el archivo de reconocimiento de las portadas. |
 | `herramientas/qr.html` | Para el docente: genera e imprime los QR. |
@@ -377,6 +377,24 @@ Las dos revistas de ejemplo ya tienen sus páginas (escaneadas): `ejemplo` (12 p
 
 Peso: unas 200–450 KB por página en calidad normal; una revista de 12 páginas ≈ 3,5 MB. Si es muy larga, usa la calidad «Liviana».
 
+### Cámara con las gafas puestas (`ar.html` → «Modo gafas»)
+
+La cámara también funciona dentro de las gafas: el visitante mira la revista impresa **a través de la cámara del
+celular** y ve el video encima de la portada, como en la galería. Las gafas deben dejar descubierta la cámara del
+celular (la mayoría de VR Box tienen una tapa frontal que se abre o se quita).
+
+1. Abrir la cámara, tocar **Modo gafas** (arriba a la derecha): la pantalla se pone horizontal y se parte en dos.
+   Ese toque también habilita el sonido. **No usar** el botón «VR» de otras páginas: muestra la pantalla negra porque
+   no incluye la imagen de la cámara.
+2. Meter el celular en las gafas y mirar la portada impresa (a 30–50 cm). El video aparece encima.
+3. Debajo de la portada aparece **«Leer revista»**: se elige poniendo el punto amarillo encima **2 segundos**.
+   La página se ve encima de la portada impresa; las **flechas amarillas** a los lados pasan la página y
+   **«Ver video»** (abajo) vuelve al video.
+4. Para salir: sacar el celular y tocar la pantalla → **Salir del modo gafas**.
+
+Sin gafas, la tarjeta de la revista detectada trae el botón **Leer revista**, que abre la revista en pantalla:
+se desliza para pasar de página y se toca una página para acercarla. `ver.html` (la página de los QR) tiene el mismo botón.
+
 ### Videos 360°
 
 Si un equipo graba su video con una **cámara 360°**, el visitante queda *dentro* del video y puede mirar
@@ -436,4 +454,4 @@ Sin cámara 360°, el efecto se puede probar con escenas hechas en computador (B
 | El video empieza sin sonido | Normal: tocar la pantalla. Revisar el botón de volumen y el modo silencio. |
 | El video no carga | Revisa que exista `revistas/<id>/video.mp4` con ese nombre exacto. |
 | El video tarda en empezar | Red lenta: el video pesa hasta 8 MB. El botón "Ver video" o el QR son iguales de pesados; ayuda un wifi mejor o datos móviles. |
-| La página no muestra un cambio | Caché de GitHub Pages: esperar 10 minutos o recargar. |
+| La página no muestra un cambio | `sw.js` hace que el celular pida siempre la última versión. Un celular que abrió el sitio antes del 18 de octubre puede tardar hasta 10 minutos la primera vez; si no, borrar los datos del sitio (candado → Configuración del sitio → Borrar). |

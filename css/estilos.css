@@ -230,3 +230,92 @@ img { max-width: 100%; }
 .sala-acceso { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 24px; padding: 16px 18px; }
 .sala-acceso > div { flex: 1 1 260px; }
 .sala-acceso strong { display: block; color: var(--azul-900); }
+
+/* ---------- Lector de la revista completa (js/lector.js) ---------- */
+
+.lector {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: #0b1430;
+  color: var(--blanco);
+}
+.lector__barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+  background: rgb(15 23 42 / .9);
+  border-bottom: 3px solid var(--rojo);
+}
+.lector__cerrar {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--azul-800);
+  font: 700 .95rem var(--fuente);
+}
+.lector__titulo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.lector__numero { flex-shrink: 0; color: var(--amarillo); font-weight: 800; }
+.lector__paginas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.lector__paginas::-webkit-scrollbar { display: none; }
+.lector__hoja {
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: center;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  overflow: hidden;
+}
+.lector__hoja img {
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--blanco);
+  box-shadow: 0 6px 24px rgb(0 0 0 / .5);
+}
+/* Pagina acercada: se recorre arrastrando dentro de ella */
+.lector__hoja--cerca { display: block; overflow: auto; padding: 0; }
+.lector__hoja--cerca img { max-width: none; max-height: none; width: 220%; }
+@media (orientation: landscape) {
+  .lector__hoja--cerca img { width: 120%; }
+}
+.lector__flecha {
+  position: absolute;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--amarillo);
+  color: var(--azul-900);
+  font: 900 2rem/1 var(--fuente);
+  box-shadow: 0 4px 14px rgb(0 0 0 / .4);
+}
+.lector__flecha--anterior { left: 8px; }
+.lector__flecha--siguiente { right: 8px; }
+.lector__ayuda {
+  position: absolute;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgb(15 23 42 / .8);
+  font-size: .85rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
