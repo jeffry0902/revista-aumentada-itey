@@ -4,11 +4,14 @@
 // El modo VR de A-Frame no sirve aqui: dibuja solo la escena 3D y la imagen de la
 // camara queda negra. Por eso, despues de cada cuadro, se copia la imagen de la
 // camara (el <video> de MindAR) y la escena 3D (el lienzo de A-Frame) a un lienzo
-// propio, una vez en cada mitad de la pantalla. Cada ojo ve el centro de la imagen
-// a tamaño real, y en el centro va el punto de mira: mirar un boton 3D 2 segundos
+// propio, una vez en cada visor (dos rectangulos junto al centro, como en la sala).
+// Cada ojo ve el centro de la imagen, y en el centro va el punto de mira: mirar un boton 3D 2 segundos
 // lo elige, igual que en la sala virtual.
 
 const ESPERA_MIRADA_MS = 1800; // igual que el cursor de la sala
+// Tamaño de cada visor, en fraccion de la pantalla. En la sala (A-Frame) cada
+// visor mide ~36 % del ancho y ~78 % del alto; aqui un poco menos y mas juntos.
+const VISOR = { ancho: 0.33, alto: 0.74, separacion: 0.02, redondeo: 0.1 };
 
 let activo = false;
 let video = null;          // camara (MindAR)
@@ -116,9 +119,17 @@ function dibujar() {
     salida.width = Math.round(W * dpr);
     salida.height = Math.round(H * dpr);
   }
-  const mitad = W / 2;
-  // Recorte del centro de la pantalla, del tamaño de una mitad: cada ojo lo ve a tamaño real.
-  const x0 = (W - mitad) / 2;
+  // Visores como los de la sala virtual (modo gafas de A-Frame), un poco mas
+  // pequeños y mas juntos al centro: asi caen dentro de las lentes de las gafas.
+  const ancho = W * VISOR.ancho;
+  const alto = Math.min(H * VISOR.alto, ancho * 1.25);
+  const separacion = W * VISOR.separacion;
+  const cy = H / 2;
+  const centros = [W / 2 - separacion / 2 - ancho / 2, W / 2 + separacion / 2 + ancho / 2];
+  // Cada visor muestra el centro de la imagen de la camara, con todo su alto.
+  const altoRecorte = H;
+  const anchoRecorte = Math.min(W, altoRecorte * ancho / alto);
+  const x0 = (W - anchoRecorte) / 2;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#000';
@@ -128,31 +139,28 @@ function dibujar() {
   const vx = parseFloat(video.style.left) || 0;
   const vy = parseFloat(video.style.top) || 0;
   const vw = parseFloat(video.style.width) || W;
-  const vh = parseFloat(video.style.height) || H;
   const escalaVideo = video.videoWidth / vw;
   const escalaGL = lienzoGL.width / (lienzoGL.clientWidth || W);
 
-  for (const ojo of [0, 1]) {
-    const dx = ojo * mitad * dpr;
+  for (const cx of centros) {
+    const dx = (cx - ancho / 2) * dpr, dy = (cy - alto / 2) * dpr;
+    const dw = ancho * dpr, dh = alto * dpr;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(dx, 0, mitad * dpr, H * dpr);
+    ctx.roundRect(dx, dy, dw, dh, dw * VISOR.redondeo);
     ctx.clip();
     if (video.videoWidth) {
       ctx.drawImage(video,
-        (x0 - vx) * escalaVideo, (0 - vy) * escalaVideo, mitad * escalaVideo, H * escalaVideo,
-        dx, 0, mitad * dpr, H * dpr);
+        (x0 - vx) * escalaVideo, (0 - vy) * escalaVideo, anchoRecorte * escalaVideo, altoRecorte * escalaVideo,
+        dx, dy, dw, dh);
     }
     ctx.drawImage(lienzoGL,
-      x0 * escalaGL, 0, mitad * escalaGL, H * escalaGL,
-      dx, 0, mitad * dpr, H * dpr);
-    dibujarMira(dx + (mitad * dpr) / 2, (H * dpr) / 2, dpr);
-    if (texto) dibujarTexto(dx + (mitad * dpr) / 2, 30 * dpr, mitad * dpr * 0.86, dpr);
+      x0 * escalaGL, 0, anchoRecorte * escalaGL, altoRecorte * escalaGL,
+      dx, dy, dw, dh);
+    dibujarMira(cx * dpr, cy * dpr, dpr);
+    if (texto) dibujarTexto(cx * dpr, dy + 22 * dpr, dw * 0.9, dpr);
     ctx.restore();
   }
-  // Linea divisoria entre los ojos.
-  ctx.fillStyle = '#000';
-  ctx.fillRect(mitad * dpr - dpr, 0, 2 * dpr, H * dpr);
 }
 
 function dibujarMira(x, y, dpr) {
@@ -173,12 +181,12 @@ function dibujarMira(x, y, dpr) {
 }
 
 function dibujarTexto(x, y, maxAncho, dpr) {
-  ctx.font = `700 ${15 * dpr}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+  ctx.font = `700 ${13 * dpr}px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const ancho = Math.min(maxAncho, ctx.measureText(texto).width + 28 * dpr);
   ctx.fillStyle = 'rgba(15,23,42,0.82)';
-  const alto = 30 * dpr;
+  const alto = 26 * dpr;
   ctx.beginPath();
   ctx.roundRect(x - ancho / 2, y - alto / 2, ancho, alto, alto / 2);
   ctx.fill();
