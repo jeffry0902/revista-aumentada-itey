@@ -383,7 +383,7 @@ La cámara también funciona dentro de las gafas: el visitante mira la revista i
 celular** y ve el video encima de la portada, como en la galería. Las gafas deben dejar descubierta la cámara del
 celular (la mayoría de VR Box tienen una tapa frontal que se abre o se quita).
 
-1. Abrir la cámara, tocar **Modo gafas** (arriba a la derecha): la pantalla se pone horizontal y se parte en dos.
+1. Abrir la cámara, tocar **Modo gafas** (arriba a la derecha): la pantalla se pone horizontal y muestra dos visores juntos al centro, como en la galería.
    Ese toque también habilita el sonido. **No usar** el botón «VR» de otras páginas: muestra la pantalla negra porque
    no incluye la imagen de la cámara.
 2. Meter el celular en las gafas y mirar la portada impresa (a 30–50 cm). El video aparece encima.
