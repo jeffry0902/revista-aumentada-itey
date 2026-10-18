@@ -400,7 +400,8 @@ function pintarGafas() {
   botones3d.forEach((b, i) => {
     const revista = camara.revistas[i];
     const aqui = conGafas && visible === i;
-    const leyendo = aqui && lectura && lectura.i === i;
+    // Siempre true/false: con null, A-Frame toma el valor por defecto y el boton se ve.
+    const leyendo = !!(aqui && lectura && lectura.i === i);
     const ver = {
       leer: aqui && !leyendo && !!revista.paginas,
       video: leyendo,
@@ -412,6 +413,8 @@ function pintarGafas() {
       if (si) elegibles.push(b[nombre]);
     }
     b.pagina.setAttribute('visible', !!(lectura && lectura.i === i && conGafas));
+    // Con las gafas el video tambien se agranda un poco sobre la portada.
+    planos[i].setAttribute('scale', conGafas ? '1.3 1.3 1' : '1 1 1');
     if (aqui) colocarBotones(i);
   });
   document.querySelectorAll('.mirable').forEach(el => el.classList.remove('mirable'));
@@ -432,16 +435,17 @@ function colocarBotones(i) {
   const [anchoPortada, altoPortada] = dimensiones[i] || [1, 1.414];
   const altoP = altoPortada / anchoPortada;
   const b = botones3d[i];
-  b.leer.setAttribute('position', `0 ${-(altoP / 2 + 0.16)} 0.03`);
+  b.leer.setAttribute('position', `0 ${-(altoP * 1.3 / 2 + 0.12)} 0.03`); // debajo del video agrandado
   if (lectura && lectura.i === i) {
-    // La pagina un poco mas grande que la portada, para leerla mejor.
+    // Con las gafas la pagina se ve bastante mas grande que la portada, para alcanzar a leerla.
     const revista = camara.revistas[i];
-    const alto = altoP * 1.15;
+    const alto = altoP * 1.5;
     const ancho = alto / (aspectos.get(revista.pagina(lectura.pagina)) || 1.414);
     b.pagina.setAttribute('width', ancho);
     b.pagina.setAttribute('height', alto);
-    b.anterior.setAttribute('position', `${-(ancho / 2 + 0.1)} 0 0.03`);
-    b.siguiente.setAttribute('position', `${ancho / 2 + 0.1} 0 0.03`);
+    // Las flechas montadas sobre el borde de la pagina, para que no queden fuera de la vista.
+    b.anterior.setAttribute('position', `${-(ancho / 2 - 0.02)} 0 0.04`);
+    b.siguiente.setAttribute('position', `${ancho / 2 - 0.02} 0 0.04`);
     b.video.setAttribute('position', `0 ${-(alto / 2 + 0.16)} 0.03`);
   }
 }

@@ -19,11 +19,14 @@ const ESPERA_MIRADA_MS = 1800; // igual que el cursor de la sala
 // cada visor es un cuadrado de 36 % del ancho de la pantalla, centrado al 31 % y
 // al 69 % del ancho y al 56 % del alto.
 const VISOR = { lado: 0.36, centroX: 0.19, centroY: 0.56 };
-// Deformacion de las lentes de Cardboard (los mismos coeficientes de A-Frame).
-const LENTE = [0.34, 0.55];
-// Que parte del alto de la imagen del ojo ocupa la camara. Con ~0,55 la camara
-// se ve casi a tamaño real a traves de las lentes.
-const CAMARA = 0.58;
+// Deformacion de las lentes. Los coeficientes de Cardboard (0,34 y 0,55) se veian
+// como ojo de pez en las gafas VR Box del colegio: estos son mas suaves y conservan
+// los lados redondeados.
+const LENTE = [0.2, 0.12];
+// Que parte del alto de la imagen del ojo ocupa la camara. Con ~0,55 se veia casi
+// a tamaño real pero muy pequeña: el video y las letras no se alcanzaban a ver.
+// 0,8 es un poco mas grande que la realidad, sin llegar a marear.
+const CAMARA = 0.8;
 const LADO_OJO = 1024; // pixeles de la imagen de un ojo
 
 let activo = false;
