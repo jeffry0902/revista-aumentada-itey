@@ -387,6 +387,10 @@ celular (la mayoría de VR Box tienen una tapa frontal que se abre o se quita).
    Ese toque también habilita el sonido. **No usar** el botón «VR» de otras páginas: muestra la pantalla negra porque
    no incluye la imagen de la cámara.
 2. Meter el celular en las gafas y mirar la portada impresa (a 30–50 cm). El video aparece encima.
+   Los visores tienen la forma y el tamaño de los de la galería (con la deformación de las lentes). La imagen de la
+   cámara ocupa el centro del visor, casi a tamaño real: más grande marearía, porque se movería más rápido que la cabeza.
+   Al entrar, la cámara se reinicia unos segundos ("Ajustando la cámara…") para pasar a alta resolución y a la
+   pantalla acostada; sin eso el video sale torcido sobre la portada.
 3. Debajo de la portada aparece **«Leer revista»**: se elige poniendo el punto amarillo encima **2 segundos**.
    La página se ve encima de la portada impresa; las **flechas amarillas** a los lados pasan la página y
    **«Ver video»** (abajo) vuelve al video.

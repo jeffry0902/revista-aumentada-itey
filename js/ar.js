@@ -33,11 +33,30 @@ const botones3d = [];    // por revista: { leer, pagina, anterior, siguiente, vi
 let camara3d = null;
 let lectura = null;      // { i, pagina } mientras se hojea una revista con las gafas
 let lectorAbierto = false; // lector en pantalla (sin gafas)
+let preparado = false;   // la primera vez que la camara quedo lista
+let reiniciando = false; // MindAR se esta reiniciando (giro de pantalla, modo gafas)
+let camaraHD = false;    // con las gafas se pide la camara en 1280x720
 const aspectos = new Map();
 let actual = -1;         // revista cargada en el reproductor
 let visible = -1;        // revista que la camara esta viendo (-1 = ninguna)
 let sonido = false;      // el visitante ya toco la pantalla
 let pausaPendiente = null;
+
+// MindAR pide la camara sin decir resolucion: muchos celulares le dan 640x480, que
+// dentro de las gafas se ve borroso. En el modo gafas se pide 1280x720 con enfoque
+// continuo (sin gafas se deja igual: los celulares economicos reconocen mas rapido).
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  const pedirCamara = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia = restricciones => {
+    if (camaraHD && restricciones && typeof restricciones.video === 'object') {
+      restricciones = {
+        ...restricciones,
+        video: { ...restricciones.video, width: { ideal: 1280 }, height: { ideal: 720 }, advanced: [{ focusMode: 'continuous' }] },
+      };
+    }
+    return pedirCamara(restricciones);
+  };
+}
 
 iniciar();
 
@@ -176,10 +195,15 @@ function crearEscena(targets) {
 function alEstarListo() {
   sistema = escena.systems['mindar-image-system'];
   dimensiones = (sistema.controller && sistema.controller.markerDimensions) || [];
+  reiniciando = false;
+  if (preparado) return pintarGafas(); // termino un reinicio
+  preparado = true;
   $('cargando').hidden = true;
   $('guia').hidden = false;
   prepararGafas({ escena, sistema, cursor: camara3d, salir: alSalirGafas });
   $('boton-gafas').hidden = false;
+  if (screen.orientation) screen.orientation.addEventListener('change', programarReinicio);
+  else window.addEventListener('orientationchange', programarReinicio);
 
   // Error tipico al preparar la feria: el .mind no corresponde al JSON.
   if (dimensiones.length && dimensiones.length !== camara.revistas.length) {
@@ -188,6 +212,31 @@ function alEstarListo() {
       `pero revistas.json tiene ${camara.revistas.length} revistas en la cámara ${nombreCamara(camara)}. Vuelve a compilarla.`;
     aviso.hidden = false;
   }
+}
+
+// MindAR calcula la posicion de la portada con las medidas de la camara de cuando
+// arranco. Al girar el celular la imagen de la camara cambia de forma y el video
+// sale torcido sobre la portada: hay que volver a arrancarla con las medidas nuevas.
+let reinicioPendiente = null;
+function programarReinicio() {
+  clearTimeout(reinicioPendiente);
+  reinicioPendiente = setTimeout(reiniciarCamara, 500);
+}
+
+function reiniciarCamara() {
+  if (!sistema || reiniciando) return;
+  reiniciando = true;
+  // Las portadas quedan "perdidas": asi, al volver a verlas, MindAR avisa de nuevo.
+  escena.querySelectorAll('[mindar-image-target]').forEach(ancla => ancla.components['mindar-image-target'].updateWorldMatrix(null));
+  visible = -1;
+  planos.forEach(p => p.setAttribute('visible', 'false'));
+  pintarGafas();
+  try {
+    sistema.stop();
+  } catch {
+    // Si la camara ya estaba detenida, se arranca igual.
+  }
+  sistema.start(); // al terminar vuelve a emitir arReady
 }
 
 // ---------- Deteccion ----------
@@ -330,11 +379,13 @@ $('boton-leer').addEventListener('click', () => {
 
 // ---------- Modo gafas ----------
 
-$('boton-gafas').addEventListener('click', () => {
+$('boton-gafas').addEventListener('click', async () => {
   activarSonido(); // este toque es el permiso para que suene dentro de las gafas
-  entrarGafas();
+  camaraHD = true;
   contarEvento('ar-gafas', 'AR · modo gafas');
   pintarGafas();
+  await entrarGafas();
+  programarReinicio(); // camara en alta resolucion y con las medidas de la pantalla acostada
 });
 
 function alSalirGafas() {
@@ -369,10 +420,11 @@ function pintarGafas() {
   if (rc) rc.refreshObjects();
 
   if (!conGafas) return;
-  if (visible === -1) textoGafas('Apunta a la portada de una revista');
-  else if (lectura) textoGafas(`Página ${lectura.pagina} de ${camara.revistas[lectura.i].paginas} · mira las flechas para pasar`);
-  else if (camara.revistas[visible].paginas) textoGafas('Mira «Leer revista» 2 segundos para hojearla');
-  else textoGafas(camara.revistas[visible].titulo);
+  if (reiniciando) textoGafas('Ajustando la cámara…');
+  else if (visible === -1) textoGafas('Mira la portada de una revista');
+  else if (lectura) textoGafas(`Página ${lectura.pagina} de ${camara.revistas[lectura.i].paginas}`);
+  else if (camara.revistas[visible].paginas) textoGafas('Mira «Leer revista» 2 segundos');
+  else textoGafas('');
 }
 
 // En unidades de MindAR la portada mide 1 de ancho; el alto sale de su proporcion.
@@ -388,8 +440,8 @@ function colocarBotones(i) {
     const ancho = alto / (aspectos.get(revista.pagina(lectura.pagina)) || 1.414);
     b.pagina.setAttribute('width', ancho);
     b.pagina.setAttribute('height', alto);
-    b.anterior.setAttribute('position', `${-(ancho / 2 + 0.16)} 0 0.03`);
-    b.siguiente.setAttribute('position', `${ancho / 2 + 0.16} 0 0.03`);
+    b.anterior.setAttribute('position', `${-(ancho / 2 + 0.1)} 0 0.03`);
+    b.siguiente.setAttribute('position', `${ancho / 2 + 0.1} 0 0.03`);
     b.video.setAttribute('position', `0 ${-(alto / 2 + 0.16)} 0.03`);
   }
 }
