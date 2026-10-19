@@ -21,10 +21,13 @@ const $ = id => document.getElementById(id);
 // Medidas en metros. Los ojos estan a 1,6 m.
 const ALTO_SALA = 3.8;
 const LADOS_MIN = 12;       // la galeria es un poligono: una pared por cuadro (minimo 12 paredes)
-const PARED_MIN = 1.55;     // ancho minimo de cada pared (si hay muchas revistas, la sala crece)
-const RADIO_MIN = 3.2;      // distancia del visitante a las paredes
+const PARED_MIN = 1.4;      // ancho minimo de cada pared (si hay muchas revistas, la sala crece)
+const RADIO_MIN = 2.9;      // distancia del visitante a las paredes (mas cerca, las letras se leen mejor)
 const ALTURA = 1.72;        // centro de los cuadros (un poco arriba de los ojos, como en un museo)
-const ANCHO_PORTADA = 0.95;
+const ANCHO_PORTADA = 1.0;
+// Ficha grande que aparece cerca al mirar un cuadro: en las gafas, lo cercano se ve
+// nitido (como el lector) y las cartelas de la pared se ven pequeñas.
+const FICHA = { distancia: 1.5, ancho: 1.15, alto: 1.15 * 420 / 1100, y: 1.05, esperaMs: 3500 };
 const MOLDURA = 0.07;       // marco de madera
 const PASPARTU = 0.06;      // borde blanco entre el marco y la portada
 const DIST_PANTALLA = 2.2;  // distancia de la pantalla del video
@@ -33,6 +36,7 @@ const DIST_LECTOR = 1.8;    // distancia de las paginas
 const ALTO_PAGINA = 1.4;    // a doble pagina
 const ALTO_PAGINA_CERCA = 2.3; // una pagina acercada para leerla moviendo la cabeza
 const ESPERA_FIN_MS = 6000; // al terminar el video, vuelve sola a la galeria
+const ESCALA_GAFAS = 2;     // resolucion pedida en modo gafas (WebXR), ver entrar()
 
 const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '#ffffff' };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
@@ -77,10 +81,13 @@ async function iniciar() {
   await esperarEscena();
   await Promise.all(lista.map(r => medir(r.objetivo)));
   sala = medidasSala(lista.length);
+  // La penumbra del modo cine va entre la pantalla del video (esquinas a ~2,7 m) y las paredes.
+  $('penumbra').querySelector('a-sphere').setAttribute('radius', Math.min(2.9, sala.radio - 0.15));
   await construirGaleria(lista.length);
   await construirTitulo(datos.evento || 'Feria de la Ciencia');
   construirAtril();
   construirCuadros(lista);
+  construirFicha();
   construirPantalla();
   construirLector();
   ordenRender($('penumbra'), 1);
@@ -89,6 +96,8 @@ async function iniciar() {
   prepararCursor();
   ajustarGafasIOS(); // en iPhone: el tamaño real de la pantalla, para que no se vea doble
   $('nota-iphone').hidden = !esIOS();
+  // Abierta desde el ícono de la pantalla de inicio ya no hay barra de Safari.
+  $('nota-barra').hidden = navigator.standalone === true || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 
   $('estado-carga').textContent = `${lista.length} revistas en la galería.`;
   $('boton-gafas').disabled = false;
@@ -123,6 +132,10 @@ function entrar(conGafas) {
   $('boton-salir').hidden = conGafas;
   contarEvento(conGafas ? 'sala-gafas' : 'sala-sin-gafas', conGafas ? 'Sala · con gafas' : 'Sala · sin gafas');
   if (conGafas) {
+    // En Android el modo gafas lo hace Chrome, que dibuja a una resolucion "recomendada"
+    // mas baja que la de la pantalla: por eso fuera de las gafas se ve nitido y dentro no.
+    // Se le pide la resolucion completa (Chrome la limita a la de la pantalla).
+    escena.renderer.xr.setFramebufferScaleFactor(ESCALA_GAFAS);
     // enterVR debe llamarse dentro del toque (pide pantalla completa).
     escena.enterVR().catch(() => {
       // Si el navegador no tiene modo gafas, queda en modo "ventana" moviendo el celular.
@@ -464,17 +477,18 @@ function construirCuadros(lista) {
     portada.classList.add('seleccionable');
     const cartela = crear('a-image', {
       src: lienzoCartela(revista),
-      width: 1.0, height: 1.0 * 330 / 1000,
-      position: `0 ${-(ALTURA - 0.55)} 0.01`,
+      width: 1.2, height: 1.2 * 400 / 1200,
+      position: `0 ${-(ALTURA - 0.52)} 0.01`,
       material: 'shader: flat',
     });
     grupo.append(marco, resalte, portada, cartela);
     contenido.appendChild(grupo);
 
-    portada.addEventListener('mouseenter', () => resaltar(grupo, resalte, true));
-    portada.addEventListener('mouseleave', () => resaltar(grupo, resalte, false));
+    const datos = { revista, angulo, el: grupo, resalte, portada };
+    portada.addEventListener('mouseenter', () => { resaltar(grupo, resalte, true); mostrarFicha(datos); });
+    portada.addEventListener('mouseleave', () => { resaltar(grupo, resalte, false); ocultarFicha(FICHA.esperaMs); });
     portada.addEventListener('click', () => abrirVideo(revista, angulo));
-    revistas.push({ revista, angulo, el: grupo, resalte, portada });
+    revistas.push(datos);
   });
 }
 
@@ -513,6 +527,39 @@ function dibujarMarco(ctx, ancho, alto, sombra) {
   ctx.strokeStyle = 'rgba(0,0,0,0.18)';
   ctx.lineWidth = 3;
   ctx.strokeRect(s + m + p - 2, s + m + p - 2, W - 2 * (m + p) + 4, H - 2 * (m + p) + 4);
+}
+
+// ---------------------------------------------------------------- ficha cercana
+
+let fichaTemporizador = null;
+const fichas = new Map(); // textura de la ficha de cada revista
+
+function construirFicha() {
+  galeria.appendChild(crear('a-image', {
+    id: 'ficha', visible: false, width: FICHA.ancho, height: FICHA.alto, material: 'shader: flat',
+  }));
+}
+
+// Entre el visitante y el cuadro, debajo de la portada para no taparla, inclinada hacia los ojos.
+function mostrarFicha({ revista, angulo }) {
+  if (abierta || leyendo) return;
+  clearTimeout(fichaTemporizador);
+  if (!fichas.has(revista.id)) fichas.set(revista.id, lienzoFicha(revista));
+  const ficha = $('ficha');
+  const inclinacion = Math.atan2(1.6 - FICHA.y, FICHA.distancia) * 180 / Math.PI;
+  ficha.setAttribute('src', fichas.get(revista.id));
+  ficha.setAttribute('position', enPared(angulo, FICHA.distancia, FICHA.y));
+  ficha.setAttribute('rotation', `${-inclinacion} ${-angulo} 0`);
+  ficha.setAttribute('visible', true);
+  ficha.setAttribute('animation__entra', 'property: scale; from: 0.85 0.85 0.85; to: 1 1 1; dur: 180; easing: easeOutQuad');
+}
+
+// Se queda unos segundos al dejar de mirar el cuadro: da tiempo de bajar la mirada y leerla.
+function ocultarFicha(esperaMs = 0) {
+  clearTimeout(fichaTemporizador);
+  const ocultar = () => $('ficha').setAttribute('visible', false);
+  if (esperaMs) fichaTemporizador = setTimeout(ocultar, esperaMs);
+  else ocultar();
 }
 
 function resaltar(grupo, resalte, si) {
@@ -632,6 +679,7 @@ function prepararBoton(b, ancho) {
 function abrirVideo(revista, angulo) {
   if (abierta || leyendo) return;
   abierta = { revista, angulo };
+  ocultarFicha();
   clearTimeout(temporizadorFin);
   contarEvento(`sala-${revista.id}`, `Sala · ${revista.id}`);
 
@@ -795,6 +843,7 @@ function construirLector() {
 function abrirLector(revista, angulo) {
   if (leyendo || !revista.paginas) return;
   leyendo = { revista, angulo, vista: 0, cerca: null };
+  ocultarFicha();
   contarEvento(`sala-leer-${revista.id}`, `Sala · leer ${revista.id}`);
   lector.setAttribute('position', enPared(angulo, DIST_LECTOR, 1.6));
   lector.setAttribute('rotation', `0 ${-angulo} 0`);
@@ -907,30 +956,48 @@ function lienzo(ancho, alto, dibujar) {
 }
 
 // Cartela de museo bajo cada cuadro.
+// Cartela de museo bajo cada cuadro (letras gruesas: en las gafas lo delgado se pierde).
 function lienzoCartela(revista) {
-  return lienzo(1000, 330, ctx => {
+  return lienzo(1200, 400, ctx => {
     ctx.fillStyle = '#fbf8f1';
-    ctx.fillRect(0, 0, 1000, 330);
+    ctx.fillRect(0, 0, 1200, 400);
     ctx.fillStyle = COLOR.amarillo;
-    ctx.fillRect(0, 0, 14, 330);
+    ctx.fillRect(0, 0, 18, 400);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#9a1a1e';
-    ctx.font = `800 50px ${FUENTE}`;
-    ctx.fillText(`${revista.curso} · ${revista.equipo}`, 50, 70, 920);
+    ctx.font = `800 64px ${FUENTE}`;
+    ctx.fillText(`${revista.curso} · ${revista.equipo}`, 56, 84, 1110);
     ctx.fillStyle = COLOR.azul;
-    ctx.font = `800 54px ${FUENTE}`;
-    const lineas = envolver(ctx, revista.titulo, 920);
-    if (lineas.length > 2) lineas.splice(1, lineas.length - 1, lineas.slice(1).join(' '));
-    lineas.slice(0, 2).forEach((linea, i) => ctx.fillText(linea, 50, 140 + i * 62, 920));
+    escribirTitulo(ctx, revista.titulo, { x: 56, arriba: 112, abajo: 300, ancho: 1110, tamanos: [70, 60, 52] });
     // Pie: que se puede hacer con este cuadro.
-    ctx.fillStyle = '#4b5563';
-    ctx.font = `600 40px ${FUENTE}`;
+    ctx.fillStyle = '#374151';
+    ctx.font = `700 50px ${FUENTE}`;
     const extra = revista.video360 ? 'video 360°' : 'video';
-    const pie = revista.paginas ? `Mira fijo: ${extra} · revista de ${revista.paginas} páginas` : `Mira fijo 2 segundos: ${extra}`;
+    const pie = revista.paginas ? `Mira fijo: ${extra} · revista de ${revista.paginas} pág.` : `Mira fijo 2 segundos: ${extra}`;
     ctx.beginPath();
-    ctx.moveTo(50, 268); ctx.lineTo(50, 302); ctx.lineTo(80, 285); ctx.closePath();
+    ctx.moveTo(56, 326); ctx.lineTo(56, 368); ctx.lineTo(92, 347); ctx.closePath();
     ctx.fill();
-    ctx.fillText(pie, 96, 300, 870);
+    ctx.fillText(pie, 110, 365, 1060);
+  });
+}
+
+// Ficha que aparece cerca al mirar un cuadro: lo mismo que la cartela, mas grande.
+function lienzoFicha(revista) {
+  return lienzo(1100, 420, ctx => {
+    redondeado(ctx, 0, 0, 1100, 420, 36, '#fbf8f1');
+    ctx.fillStyle = COLOR.amarillo;
+    ctx.fillRect(0, 392, 1100, 28);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9a1a1e';
+    ctx.font = `800 58px ${FUENTE}`;
+    ctx.fillText(`${revista.curso} · ${revista.equipo}`, 550, 78, 1040);
+    ctx.fillStyle = COLOR.azul;
+    escribirTitulo(ctx, revista.titulo, { x: 550, arriba: 104, abajo: 300, ancho: 1040, tamanos: [68, 58, 50] });
+    ctx.fillStyle = '#374151';
+    ctx.font = `700 46px ${FUENTE}`;
+    const extra = revista.video360 ? 'el video 360°' : 'el video';
+    ctx.fillText(revista.paginas ? `Mira fijo la portada: ${extra} y la revista de ${revista.paginas} páginas`
+      : `Mira fijo la portada 2 segundos: ${extra}`, 550, 350, 1040);
   });
 }
 
@@ -1002,6 +1069,27 @@ function redondeado(ctx, x, y, w, h, r, color) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
   ctx.fill();
+}
+
+// Escribe un titulo entre las alturas arriba y abajo con la letra mas grande con la
+// que cabe (en las lineas que haga falta). Nunca aprieta el texto.
+function escribirTitulo(ctx, texto, { x, arriba, abajo, ancho, tamanos }) {
+  let lineas = [], tamano = tamanos[tamanos.length - 1];
+  for (const t of tamanos) {
+    ctx.font = `800 ${t}px ${FUENTE}`;
+    lineas = envolver(ctx, texto, ancho);
+    tamano = t;
+    if (lineas.length * t * 1.12 <= abajo - arriba) break;
+  }
+  // Si ni con la letra mas pequeña cabe, lo que sobre se corta con puntos suspensivos.
+  const caben = Math.max(1, Math.floor((abajo - arriba) / (tamano * 1.12)));
+  if (lineas.length > caben) {
+    lineas = lineas.slice(0, caben);
+    lineas[caben - 1] += '…';
+  }
+  const alto = tamano * 1.12;
+  const inicio = arriba + ((abajo - arriba) - alto * lineas.length) / 2 + tamano * 0.85;
+  lineas.forEach((linea, i) => ctx.fillText(linea, x, inicio + i * alto, ancho));
 }
 
 function envolver(ctx, texto, maxAncho) {

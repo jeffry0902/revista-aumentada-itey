@@ -12,7 +12,7 @@
 import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTargets, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
 import { abrirLector } from './lector.js';
-import { prepararGafas, entrarGafas, gafasActivas, textoGafas } from './ar-gafas.js';
+import { prepararGafas, entrarGafas, gafasActivas, textoGafas, pastilla } from './ar-gafas.js';
 import { esIOS } from './pantalla.js';
 
 const $ = id => document.getElementById(id);
@@ -573,18 +573,6 @@ function lienzoBoton(texto, fondo, color) {
     ctx.textAlign = 'center';
     ctx.fillText(texto, 280, 104, 500);
   });
-}
-
-// Rectangulo redondeado. ctx.roundRect no existe en Safari 15 (iPhone 6s, 7, SE de 1.ª generacion).
-export function pastilla(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  if (ctx.roundRect) return ctx.roundRect(x, y, w, h, r);
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
 }
 
 function lienzoFlecha(texto) {

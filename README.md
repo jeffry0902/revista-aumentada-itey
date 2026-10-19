@@ -348,13 +348,30 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
 - **Uso en el stand:** abrir `sala.html` en el celular de las gafas, tocar **Entrar con gafas** (ese toque habilita
   el sonido) y meter el celular **acostado** en las gafas. Para el siguiente visitante no hay que tocar nada.
   **Ver sin gafas** sirve para probar moviendo el celular; en el computador se arrastra con el mouse y se hace clic.
-- **Gafas:** si se ve un poco borroso es porque el celular es más grande que lo que admiten las gafas (por ejemplo,
-  un 6,9" en unas gafas para 6"): las lentes no quedan centradas en cada mitad de la pantalla. Con un celular de
-  6,1–6,5" se ve más nítido; las ruedas de las gafas (distancia entre lentes y enfoque) también ayudan.
-  Los celulares de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
+- **Gafas:** VR Shinecon (lentes asféricas de 40 mm, campo de visión 90–100°, distancia entre lentes ajustable de
+  58 a 67 mm, para celulares de 4,7" a 6"). Funcionan también con celulares más grandes (probado con un Samsung S25
+  Ultra de 6,9") porque la galería no usa media pantalla para cada ojo: pone cada imagen **frente a su lente, a 60 mm
+  entre centros**, sea cual sea el tamaño del celular (por eso las imágenes son dos recuadros redondeados en el centro).
+  Los videos "VR" de YouTube que llenan media pantalla por ojo sí fallan en celulares grandes: en uno de 16 cm de ancho
+  sus centros quedan a 80 mm y las lentes no llegan, se ve doble.
+  - Rueda de **distancia entre lentes**: ponerla cerca del mínimo (unos 60 mm). Rueda de **enfoque**: hasta ver nítidas
+    las letras de las cartelas.
+  - Los celulares de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
+- **Nitidez:** en modo gafas se pide a Chrome la resolución completa de la pantalla (antes dibujaba a una resolución
+  menor y se veía más borroso dentro de las gafas que fuera). Al mirar un cuadro aparece su **ficha grande y cerca**
+  (curso, equipo y título): lo cercano se ve nítido en las gafas, como el lector de la revista.
+- **iPhone:** Safari no tiene modo gafas propio y A-Frame usa un reemplazo que no conocía los iPhone del 12 en adelante:
+  suponía una pantalla de 10,4 cm y se veía doble. `js/pantalla.js` calcula el tamaño real de cada iPhone (por la
+  densidad de su pantalla) y lo corrige. Para usarlo:
+  1. En Safari, tocar **Compartir → «Agregar a inicio»** en la galería y abrirla desde ese ícono: se abre a pantalla
+     completa, sin la barra de Safari (con la barra, las imágenes quedan corridas).
+  2. Quitar el **bloqueo de rotación** (Centro de control). La página no puede girar la pantalla en iPhone: después de
+     «Entrar con gafas» hay que acostar el celular (sale un aviso en español mientras esté vertical).
+  3. Si pide permiso para los sensores de movimiento, tocar **«Permitir»** (si no, la vista no sigue la cabeza).
+  4. Ajustes → Pantalla y brillo → Bloqueo automático → **Nunca**, para que la pantalla no se apague dentro de las gafas.
 - Para que suene: volumen alto del celular o audífonos bluetooth. Toallitas para limpiar entre visitantes y sesiones de 1–2 minutos.
-- Prueba con las gafas reales (17 de octubre, sala anterior): se ve bien. La galería, el lector y el modo 360° se
-  probaron en el computador con 4 y con 14 revistas. **Falta probar la galería nueva con las gafas.**
+- Probado con las gafas reales en el S25 Ultra (se ve bien) y en un iPhone 13 y un iPhone 16 (se veía doble, corregido
+  el 19 de octubre; falta volver a probar en iPhone).
 
 ### Revista completa en la galería
 

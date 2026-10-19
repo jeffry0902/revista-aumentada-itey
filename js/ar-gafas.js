@@ -100,6 +100,10 @@ export function prepararGafas({ escena, sistema: s, cursor, salir }) {
   document.addEventListener('fullscreenchange', () => {
     if (activo && !document.fullscreenElement) salirGafas();
   });
+  // El navegador suelta el permiso de pantalla encendida cada vez que la pagina se oculta.
+  document.addEventListener('visibilitychange', () => {
+    if (activo && !document.hidden) pedirPantallaEncendida();
+  });
 
   // Progreso de la mirada sobre un boton.
   cursor.addEventListener('fusing', () => { inicioMirada = performance.now(); });
@@ -118,8 +122,15 @@ export async function entrarGafas() {
   } catch {
     // iPhone no deja: el visitante gira el celular a mano.
   }
+  pedirPantallaEncendida();
+}
+
+async function pedirPantallaEncendida() {
   try {
-    if ('wakeLock' in navigator) bloqueo = await navigator.wakeLock.request('screen');
+    if ('wakeLock' in navigator && !bloqueo) {
+      bloqueo = await navigator.wakeLock.request('screen');
+      bloqueo.addEventListener('release', () => { bloqueo = null; });
+    }
   } catch {
     // Opcional.
   }
@@ -203,8 +214,7 @@ function dibujarTexto(x, y, maxAncho) {
   const ancho = Math.min(maxAncho, octx.measureText(texto).width + 44);
   const alto = 50;
   octx.fillStyle = 'rgba(19,32,74,0.95)';
-  octx.beginPath();
-  octx.roundRect(x - ancho / 2, y - alto / 2, ancho, alto, alto / 2);
+  pastilla(octx, x - ancho / 2, y - alto / 2, ancho, alto, alto / 2);
   octx.fill();
   octx.fillStyle = '#fff';
   octx.fillText(texto, x, y + 2, maxAncho - 30);
@@ -223,7 +233,12 @@ void main() {
 // p va de -1 a 1 en el visor. Cada punto toma la imagen de mas afuera cuanto mas
 // lejos esta del centro (deformacion de barril): las lentes la vuelven a enderezar.
 const FRAGMENTOS = `
+// highp: con mediump la posicion en la imagen tiene poca precision y se ve borroso.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 uniform sampler2D imagen;
 uniform vec2 lente;
 varying vec2 p;
@@ -267,7 +282,8 @@ function prepararWebGL() {
 }
 
 function dibujar() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Toda la resolucion de la pantalla (el S25 Ultra tiene ~3): con menos, el navegador agranda y se ve borroso.
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
   const W = salida.clientWidth, H = salida.clientHeight;
   if (!W || !H) return;
   if (salida.width !== Math.round(W * dpr) || salida.height !== Math.round(H * dpr)) {
@@ -304,4 +320,16 @@ function medidasVisores(W, H) {
   // El visor no puede pasar del borde de abajo ni montarse sobre el otro.
   const lado = Math.min(VISOR_MM.lado * mm, 2 * cy, 2 * (H - cy), 2 * medio - 4, W - 2 * medio);
   return { lado, centros: [W / 2 - medio, W / 2 + medio], cy };
+}
+
+// Rectangulo redondeado. ctx.roundRect no existe en Safari 15 (iPhone 6s, 7, SE de 1.ª generacion).
+export function pastilla(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) return ctx.roundRect(x, y, w, h, r);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }

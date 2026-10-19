@@ -61,6 +61,8 @@
   font: 600 17px/1.4 system-ui, -apple-system, sans-serif;
 }
 
+.sala-nota ul { margin: 6px 0 0; padding-left: 18px; }
+.sala-nota li + li { margin-top: 4px; }
 .sala-nota {
   margin: 0 0 12px;
   padding: 10px 14px;
