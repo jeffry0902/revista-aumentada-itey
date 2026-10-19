@@ -13,6 +13,7 @@ import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTarget
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
 import { abrirLector } from './lector.js';
 import { prepararGafas, entrarGafas, gafasActivas, textoGafas } from './ar-gafas.js';
+import { esIOS } from './pantalla.js';
 
 const $ = id => document.getElementById(id);
 const videoAR = $('video-ar');
@@ -81,7 +82,7 @@ async function iniciar() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return mostrarError('Este navegador no puede usar la cámara',
       'Abre esta página en Chrome (Android) o Safari (iPhone). Si llegaste desde una app lectora de QR, ' +
-      'toca el menú ⋮ y elige «Abrir en Chrome».');
+      (esIOS() ? 'toca el ícono de la brújula o «Abrir en Safari».' : 'toca el menú ⋮ y elige «Abrir en Chrome».'));
   }
 
   let targets;
@@ -184,7 +185,9 @@ function crearEscena(targets) {
 
   escena.addEventListener('arReady', alEstarListo);
   escena.addEventListener('arError', () => mostrarError('No se pudo abrir la cámara',
-    'Revisa que le diste permiso: toca el candado junto a la dirección, entra a «Permisos» y activa la cámara. ' +
+    (esIOS()
+      ? 'Revisa que le diste permiso: toca «aA» (o el ícono de la página) junto a la dirección, entra a «Configuración del sitio web» y pon la cámara en «Permitir». '
+      : 'Revisa que le diste permiso: toca el candado junto a la dirección, entra a «Permisos» y activa la cámara. ') +
     'Luego toca «Reintentar». Si llegaste desde una app lectora de QR, abre la página en Chrome o Safari.'));
 
   document.body.appendChild(escena);
@@ -196,14 +199,20 @@ function alEstarListo() {
   sistema = escena.systems['mindar-image-system'];
   dimensiones = (sistema.controller && sistema.controller.markerDimensions) || [];
   reiniciando = false;
+  // Si la imagen de la camara cambia de forma (el celular se giro), hay que reiniciar.
+  sistema.video.addEventListener('resize', () => { if (medidasCambiaron()) programarReinicio(); });
+  if (otraVez) { // se pidio otro reinicio mientras se hacia este
+    otraVez = false;
+    programarReinicio();
+  }
   if (preparado) return pintarGafas(); // termino un reinicio
   preparado = true;
   $('cargando').hidden = true;
   $('guia').hidden = false;
   prepararGafas({ escena, sistema, cursor: camara3d, salir: alSalirGafas });
   $('boton-gafas').hidden = false;
-  if (screen.orientation) screen.orientation.addEventListener('change', programarReinicio);
-  else window.addEventListener('orientationchange', programarReinicio);
+  if (screen.orientation) screen.orientation.addEventListener('change', () => programarReinicio());
+  else window.addEventListener('orientationchange', () => programarReinicio());
 
   // Error tipico al preparar la feria: el .mind no corresponde al JSON.
   if (dimensiones.length && dimensiones.length !== camara.revistas.length) {
@@ -218,23 +227,51 @@ function alEstarListo() {
 // arranco. Al girar el celular la imagen de la camara cambia de forma y el video
 // sale torcido sobre la portada: hay que volver a arrancarla con las medidas nuevas.
 let reinicioPendiente = null;
-function programarReinicio() {
+let reinicioForzado = false; // al entrar a las gafas se reinicia siempre (camara en alta resolucion)
+let otraVez = false;
+function programarReinicio(forzar = false) {
+  if (forzar) reinicioForzado = true;
   clearTimeout(reinicioPendiente);
   reinicioPendiente = setTimeout(reiniciarCamara, 500);
 }
 
+// La imagen de la camara ya no tiene las medidas con las que arranco MindAR.
+function medidasCambiaron() {
+  const video = sistema && sistema.video, control = sistema && sistema.controller;
+  return !!(video && control && video.videoWidth &&
+    (video.videoWidth !== control.inputWidth || video.videoHeight !== control.inputHeight));
+}
+
 function reiniciarCamara() {
-  if (!sistema || reiniciando) return;
+  if (!sistema) return;
+  if (reiniciando) { // en iPhone el visitante gira el celular mientras la camara arranca
+    otraVez = true;
+    return;
+  }
+  // Reiniciar sin necesidad gasta memoria y unos segundos sin reconocer portadas.
+  if (!reinicioForzado && !medidasCambiaron()) return;
+  reinicioForzado = false;
   reiniciando = true;
   // Las portadas quedan "perdidas": asi, al volver a verlas, MindAR avisa de nuevo.
   escena.querySelectorAll('[mindar-image-target]').forEach(ancla => ancla.components['mindar-image-target'].updateWorldMatrix(null));
   visible = -1;
   planos.forEach(p => p.setAttribute('visible', 'false'));
   pintarGafas();
+  const tracker = sistema.controller && sistema.controller.tracker;
   try {
     sistema.stop();
   } catch {
     // Si la camara ya estaba detenida, se arranca igual.
+  }
+  // MindAR no libera al detenerse la memoria de la GPU de cada portada; con varios
+  // reinicios, Safari del iPhone termina recargando la pagina. Se libera a mano.
+  try {
+    if (tracker) {
+      [...(tracker.featurePointsListT || []), ...(tracker.imagePixelsListT || []), ...(tracker.imagePropertiesListT || [])]
+        .forEach(t => t && t.dispose && t.dispose());
+    }
+  } catch {
+    // Es memoria interna de MindAR 1.2.5: si cambia, solo se deja de liberar.
   }
   sistema.start(); // al terminar vuelve a emitir arReady
 }
@@ -381,11 +418,18 @@ $('boton-leer').addEventListener('click', () => {
 
 $('boton-gafas').addEventListener('click', async () => {
   activarSonido(); // este toque es el permiso para que suene dentro de las gafas
+  if (actual === -1) {
+    // Aun no se ha visto ninguna portada: se prepara el reproductor dentro de este toque,
+    // porque con las gafas puestas ya no habra otro (en iPhone, sin esto no suena).
+    cargarVideo(0);
+    videoAR.muted = false;
+    videoAR.play().then(() => { if (visible === -1) videoAR.pause(); }).catch(() => {});
+  }
   camaraHD = true;
   contarEvento('ar-gafas', 'AR · modo gafas');
   pintarGafas();
   await entrarGafas();
-  programarReinicio(); // camara en alta resolucion y con las medidas de la pantalla acostada
+  programarReinicio(true); // camara en alta resolucion y con las medidas de la pantalla acostada
 });
 
 function alSalirGafas() {
@@ -522,14 +566,25 @@ function lienzo(ancho, alto, dibujar) {
 function lienzoBoton(texto, fondo, color) {
   return lienzo(560, 160, ctx => {
     ctx.fillStyle = fondo;
-    ctx.beginPath();
-    ctx.roundRect(6, 6, 548, 148, 74);
+    pastilla(ctx, 6, 6, 548, 148, 74);
     ctx.fill();
     ctx.fillStyle = color;
     ctx.font = `800 70px ${FUENTE}`;
     ctx.textAlign = 'center';
     ctx.fillText(texto, 280, 104, 500);
   });
+}
+
+// Rectangulo redondeado. ctx.roundRect no existe en Safari 15 (iPhone 6s, 7, SE de 1.ª generacion).
+export function pastilla(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) return ctx.roundRect(x, y, w, h, r);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 function lienzoFlecha(texto) {

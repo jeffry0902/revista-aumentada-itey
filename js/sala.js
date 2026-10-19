@@ -14,6 +14,7 @@
 
 import { cargarDatos, revistasPorCurso } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
+import { esIOS, ajustarGafasIOS } from './pantalla.js';
 
 const $ = id => document.getElementById(id);
 
@@ -86,6 +87,8 @@ async function iniciar() {
   ordenRender(pantalla, 2);
   ordenRender(lector, 2);
   prepararCursor();
+  ajustarGafasIOS(); // en iPhone: el tamaño real de la pantalla, para que no se vea doble
+  $('nota-iphone').hidden = !esIOS();
 
   $('estado-carga').textContent = `${lista.length} revistas en la galería.`;
   $('boton-gafas').disabled = false;
@@ -93,6 +96,14 @@ async function iniciar() {
   $('boton-gafas').addEventListener('click', () => entrar(true));
   $('boton-sin-gafas').addEventListener('click', () => entrar(false));
   $('boton-salir').addEventListener('click', salir);
+  // Si un video quedo sin sonido (el celular no lo dejo sonar), un toque en la pantalla se lo activa.
+  document.addEventListener('touchend', () => {
+    if (abierta && video.muted) {
+      video.muted = false;
+      video.play().catch(() => {});
+      $('pantalla-aviso').setAttribute('visible', false);
+    }
+  });
   escena.addEventListener('exit-vr', () => { if (!$('entrada').hidden) return; salir(); });
 }
 
@@ -106,6 +117,7 @@ function entrar(conGafas) {
   // Este toque es el permiso del navegador para reproducir con sonido mas tarde,
   // cuando el visitante "elija" una revista con la mirada (eso no cuenta como toque).
   desbloquearAudio();
+  pedirSensores();
   pedirPantallaEncendida();
   $('entrada').hidden = true;
   $('boton-salir').hidden = conGafas;
@@ -136,13 +148,35 @@ function desbloquearAudio() {
   if (intento && intento.then) intento.then(() => video.pause()).catch(() => {});
 }
 
+// iPhone: los sensores de movimiento necesitan permiso, y solo se puede pedir con un
+// toque. A-Frame muestra su propio aviso al cargar (traducido en sala.html); si el
+// visitante no lo contesto, se pide aqui, con el toque de «Entrar».
+function pedirSensores() {
+  const ui = escena.components['device-orientation-permission-ui'];
+  if (!window.DeviceOrientationEvent || !DeviceOrientationEvent.requestPermission || (ui && ui.permissionGranted)) return;
+  DeviceOrientationEvent.requestPermission().then(estado => {
+    if (estado !== 'granted') return;
+    if (ui) ui.permissionGranted = true;
+    escena.emit('deviceorientationpermissiongranted'); // asi A-Frame empieza a seguir el celular
+  }).catch(() => {});
+}
+
+// La pantalla no debe apagarse dentro de las gafas. El navegador suelta este permiso
+// cada vez que la pagina se oculta (una notificacion, el Centro de control): se pide de nuevo al volver.
+let bloqueoPantalla = null;
 async function pedirPantallaEncendida() {
   try {
-    if ('wakeLock' in navigator) await navigator.wakeLock.request('screen');
+    if ('wakeLock' in navigator && !bloqueoPantalla) {
+      bloqueoPantalla = await navigator.wakeLock.request('screen');
+      bloqueoPantalla.addEventListener('release', () => { bloqueoPantalla = null; });
+    }
   } catch {
     // Opcional: algunos navegadores no lo permiten.
   }
 }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && $('entrada').hidden) pedirPantallaEncendida();
+});
 
 // ---------------------------------------------------------------- galeria
 
@@ -635,7 +669,13 @@ function abrirVideo(revista, angulo) {
   video.muted = false;
   video.src = revista.video;
   video.currentTime = 0;
-  video.play().catch(() => mostrarAviso('Toca la pantalla para oír el video'));
+  video.play().catch(() => {
+    // El celular no dejo sonar el video (por ejemplo, en modo de bajo consumo): sigue sin
+    // sonido para que al menos se vea, y un toque en la pantalla le activa el sonido.
+    video.muted = true;
+    video.play().catch(() => {});
+    mostrarAviso('Toca la pantalla para oír el video');
+  });
 }
 
 function cerrarVideo() {

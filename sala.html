@@ -16,7 +16,7 @@
   <a-scene id="escena"
            renderer="colorManagement: true; antialias: true"
            vr-mode-ui="enabled: true"
-           device-orientation-permission-ui="enabled: true"
+           device-orientation-permission-ui="enabled: true; deviceMotionMessage: Para mirar alrededor moviendo el celular, permite el acceso a los sensores de movimiento.; allowButtonText: Permitir; denyButtonText: No permitir; cancelButtonText: Cancelar; httpsMessage: Abre la galería con https para usar las gafas."
            loading-screen="enabled: false">
     <a-assets timeout="15000"></a-assets>
 
@@ -104,6 +104,10 @@
         <li>Si la revista tiene páginas, mira <strong>«Leer revista»</strong> para hojearla completa.</li>
         <li>Para salir, <strong>mira «Volver» 2 segundos</strong>.</li>
       </ol>
+      <p id="nota-iphone" class="sala-nota" hidden>
+        <strong>En iPhone:</strong> quita el <strong>bloqueo de rotación</strong> (Centro de control, el candado con la flecha)
+        y acuesta el celular después de tocar «Entrar con gafas». Si Safari pide permiso para el movimiento del celular, toca «Permitir».
+      </p>
       <a class="sala-volver" href="./">‹ Volver al inicio</a>
     </div>
   </div>

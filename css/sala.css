@@ -11,14 +11,15 @@
   inset: 0;
   z-index: 20;
   display: flex;
-  align-items: center;
+  /* flex-start + margin auto: centrado si cabe y con scroll completo si no (celular acostado) */
+  align-items: flex-start;
   justify-content: center;
   padding: 20px 16px;
   background: radial-gradient(circle at 50% 20%, rgb(30 64 175 / .55), rgb(11 20 48 / .96) 70%);
   color: #fff;
   overflow-y: auto;
 }
-.sala-capa__caja { max-width: 460px; width: 100%; text-align: center; }
+.sala-capa__caja { max-width: 460px; width: 100%; margin: auto; text-align: center; }
 .sala-logo { height: 64px; width: auto; margin-bottom: 6px; }
 .sala-capa h1 { margin: 4px 0 0; font-size: 2rem; letter-spacing: -.01em; }
 .sala-sub { margin: 2px 0 14px; color: #ffd21f; font-weight: 600; }
@@ -48,6 +49,27 @@
   background: rgb(19 32 74 / .85);
   color: #fff;
   font: 600 .95rem system-ui, sans-serif;
+}
+
+/* En iPhone la pagina no puede girar la pantalla: mientras el celular este vertical en
+   modo gafas, A-Frame muestra este aviso (en ingles). Se traduce. */
+.pagina-sala .a-orientation-modal:after {
+  content: "Acuesta el celular y mételo en las gafas. Si no gira, quita el bloqueo de rotación en el Centro de control.";
+  padding: 0 24px;
+  box-sizing: border-box;
+  color: #333;
+  font: 600 17px/1.4 system-ui, -apple-system, sans-serif;
+}
+
+.sala-nota {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgb(255 210 31 / .15);
+  color: #fef3c7;
+  font-size: .9rem;
+  line-height: 1.4;
+  text-align: left;
 }
 
 /* Boton "VR" de A-Frame (otra forma de entrar a las gafas): respeta la zona segura del celular. */
