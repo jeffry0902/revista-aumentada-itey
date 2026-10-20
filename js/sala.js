@@ -62,13 +62,26 @@ let audioListo = false;
 const aspectos = new Map(); // alto/ancho de cada imagen ya medida
 
 // Medidor de cuadros por segundo dentro de las gafas: sala.html?cps (para el encargado).
+// Redibuja siempre el mismo lienzo (una imagen nueva por segundo llenaria la memoria).
 AFRAME.registerComponent('medidor-cps', {
   init() {
     this.cuadros = 0;
     this.desde = performance.now();
-    this.el.setAttribute('width', 0.34);
-    this.el.setAttribute('height', 0.34 * 120 / 420);
-    this.el.setAttribute('material', 'shader: flat; transparent: true');
+    this.lienzo = document.createElement('canvas');
+    this.lienzo.width = 420;
+    this.lienzo.height = 120;
+    this.textura = new AFRAME.THREE.CanvasTexture(this.lienzo);
+    this.el.setAttribute('geometry', { primitive: 'plane', width: 0.34, height: 0.34 * 120 / 420 });
+    this.el.setAttribute('material', { shader: 'flat', transparent: true });
+    this.el.addEventListener('object3dset', () => this.ponerTextura());
+    this.ponerTextura();
+  },
+  ponerTextura() {
+    const malla = this.el.getObject3D('mesh');
+    if (malla && malla.material.map !== this.textura) {
+      malla.material.map = this.textura;
+      malla.material.needsUpdate = true;
+    }
   },
   tick() {
     this.cuadros++;
@@ -76,14 +89,15 @@ AFRAME.registerComponent('medidor-cps', {
     if (ahora - this.desde < 1000) return;
     const cps = Math.round(this.cuadros * 1000 / (ahora - this.desde));
     const sesion = escena.xrSession;
-    const objetivo = sesion && sesion.frameRate ? ` · pantalla ${Math.round(sesion.frameRate)}` : '';
-    this.el.setAttribute('src', lienzo(420, 120, ctx => {
-      redondeado(ctx, 0, 0, 420, 120, 30, 'rgba(0,0,0,0.7)');
-      ctx.fillStyle = cps >= 55 ? '#4ade80' : '#f87171';
-      ctx.font = `800 52px ${FUENTE}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(`${cps} cps${objetivo}`, 210, 80, 400);
-    }));
+    const pantalla = sesion && sesion.frameRate ? ` · pantalla ${Math.round(sesion.frameRate)}` : '';
+    const ctx = this.lienzo.getContext('2d');
+    ctx.clearRect(0, 0, 420, 120);
+    redondeado(ctx, 0, 0, 420, 120, 30, 'rgba(0,0,0,0.7)');
+    ctx.fillStyle = cps >= 55 ? '#4ade80' : '#f87171';
+    ctx.font = `800 52px ${FUENTE}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${cps} cps${pantalla}`, 210, 80, 400);
+    this.textura.needsUpdate = true;
     this.cuadros = 0;
     this.desde = ahora;
   },
@@ -153,7 +167,7 @@ async function iniciar() {
   escena.addEventListener('exit-vr', () => { if (!$('entrada').hidden) return; salir(); });
   escena.addEventListener('enter-vr', pedirMasCuadros);
   if (new URLSearchParams(location.search).has('cps')) {
-    $('camara').appendChild(crear('a-image', { 'medidor-cps': '', position: '0 -0.46 -1' }));
+    $('camara').appendChild(crear('a-entity', { 'medidor-cps': '', position: '0 -0.46 -1' }));
   }
   // «No permitir» en el aviso de A-Frame al cargar (iPhone).
   escena.addEventListener('deviceorientationpermissionrejected', sinSensores);
