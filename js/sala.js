@@ -27,7 +27,10 @@ const ALTURA = 1.72;        // centro de los cuadros (un poco arriba de los ojos
 const ANCHO_PORTADA = 1.0;
 // Ficha grande que aparece cerca al mirar un cuadro: en las gafas, lo cercano se ve
 // nitido (como el lector) y las cartelas de la pared se ven pequeñas.
-const FICHA = { distancia: 1.5, ancho: 1.15, alto: 1.15 * 420 / 1100, y: 1.05, anguloMax: 28 };
+const FICHA = { distancia: 1.5, ancho: 1.15, alto: 1.15 * 420 / 1100, y: 0.97, anguloMax: 28 };
+// Portada ampliada que sale de la pared al mirar un cuadro (borde de abajo a 1,16 m: la
+// ficha queda justo debajo, sin taparse).
+const AMPLIADA = { distancia: 1.7, ancho: 0.95, abajo: 1.16, borde: 0.035, esperaMs: 450 };
 const MOLDURA = 0.07;       // marco de madera
 const PASPARTU = 0.06;      // borde blanco entre el marco y la portada
 const DIST_PANTALLA = 2.2;  // distancia de la pantalla del video
@@ -57,6 +60,34 @@ let temporizadorFin = null;
 let temporizadorAviso = null;
 let audioListo = false;
 const aspectos = new Map(); // alto/ancho de cada imagen ya medida
+
+// Medidor de cuadros por segundo dentro de las gafas: sala.html?cps (para el encargado).
+AFRAME.registerComponent('medidor-cps', {
+  init() {
+    this.cuadros = 0;
+    this.desde = performance.now();
+    this.el.setAttribute('width', 0.34);
+    this.el.setAttribute('height', 0.34 * 120 / 420);
+    this.el.setAttribute('material', 'shader: flat; transparent: true');
+  },
+  tick() {
+    this.cuadros++;
+    const ahora = performance.now();
+    if (ahora - this.desde < 1000) return;
+    const cps = Math.round(this.cuadros * 1000 / (ahora - this.desde));
+    const sesion = escena.xrSession;
+    const objetivo = sesion && sesion.frameRate ? ` · pantalla ${Math.round(sesion.frameRate)}` : '';
+    this.el.setAttribute('src', lienzo(420, 120, ctx => {
+      redondeado(ctx, 0, 0, 420, 120, 30, 'rgba(0,0,0,0.7)');
+      ctx.fillStyle = cps >= 55 ? '#4ade80' : '#f87171';
+      ctx.font = `800 52px ${FUENTE}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`${cps} cps${objetivo}`, 210, 80, 400);
+    }));
+    this.cuadros = 0;
+    this.desde = ahora;
+  },
+});
 
 iniciar();
 
@@ -93,7 +124,7 @@ async function iniciar() {
   await construirTitulo(datos.evento || 'Feria de la Ciencia');
   construirAtril();
   construirCuadros(lista);
-  construirFichas();
+  construirAmpliadas();
   construirPantalla();
   construirLector();
   ordenRender($('penumbra'), 1);
@@ -120,8 +151,23 @@ async function iniciar() {
     }
   });
   escena.addEventListener('exit-vr', () => { if (!$('entrada').hidden) return; salir(); });
+  escena.addEventListener('enter-vr', pedirMasCuadros);
+  if (new URLSearchParams(location.search).has('cps')) {
+    $('camara').appendChild(crear('a-image', { 'medidor-cps': '', position: '0 -0.46 -1' }));
+  }
   // «No permitir» en el aviso de A-Frame al cargar (iPhone).
   escena.addEventListener('deviceorientationpermissionrejected', sinSensores);
+}
+
+// Mas cuadros por segundo = menos borroso al girar la cabeza: la pantalla del celular deja
+// cada imagen encendida hasta la siguiente y, al moverse el ojo, se arrastra. A-Frame fija
+// 60 o 72 en todo lo que no sea Oculus; se pide lo maximo que deje el celular (120 en el S25,
+// si Chrome lo permite). Sin soporte (iPhone, muchos Android) no hace nada.
+function pedirMasCuadros() {
+  const sesion = escena.xrSession;
+  if (!sesion || !sesion.supportedFrameRates || !sesion.updateTargetFrameRate) return;
+  const maximo = Math.max(...sesion.supportedFrameRates);
+  if (maximo > 0) sesion.updateTargetFrameRate(maximo).catch(() => {});
 }
 
 function esperarEscena() {
@@ -500,9 +546,14 @@ function construirCuadros(lista) {
     contenido.appendChild(grupo);
 
     const datos = { revista, angulo, el: grupo, resalte, portada };
-    portada.addEventListener('mouseenter', () => { resaltar(grupo, resalte, true); mostrarFicha(datos); });
-    portada.addEventListener('mouseleave', () => { resaltar(grupo, resalte, false); vigilarFicha(); });
-    portada.addEventListener('click', () => abrirVideo(revista, angulo));
+    portada.addEventListener('mouseenter', () => { resaltar(grupo, resalte, true); programarAmpliada(datos); });
+    portada.addEventListener('mouseleave', () => {
+      resaltar(grupo, resalte, false);
+      clearTimeout(temporizadorAmpliar);
+      vigilarAmpliada();
+    });
+    // Con mouse (computador): un clic saca la portada ampliada; otro clic en ella abre el video.
+    portada.addEventListener('click', () => mostrarAmpliada(datos));
     revistas.push(datos);
   });
 }
@@ -546,53 +597,99 @@ function dibujarMarco(ctx, ancho, alto, sombra) {
 
 // ---------------------------------------------------------------- ficha cercana
 
-let fichaVisible = null;    // revista cuya ficha se ve
-let fichaVigia = null;
+let ampliada = null;        // revista cuya portada ampliada se ve
+let vigia = null;
+let temporizadorAmpliar = null;
 
-// Una ficha por revista, ya dibujada y en su sitio: al mirar un cuadro solo se muestra.
-// Va entre el visitante y el cuadro, debajo de la portada para no taparla, inclinada hacia los ojos.
-function construirFichas() {
+// Por cada revista, ya armadas y en su sitio (al mirar un cuadro solo se muestran):
+// - la portada ampliada, entre el visitante y el cuadro, a la altura de los ojos, con borde
+//   amarillo; mirarla 2 segundos abre el video;
+// - la ficha (curso, equipo y titulo), debajo de la portada ampliada, inclinada hacia los ojos.
+function construirAmpliadas() {
   const inclinacion = Math.atan2(1.6 - FICHA.y, FICHA.distancia) * 180 / Math.PI;
   revistas.forEach(r => {
+    const alto = AMPLIADA.ancho * aspectos.get(r.revista.objetivo);
+    const borde = AMPLIADA.borde;
+    const y = AMPLIADA.abajo + borde + alto / 2; // el borde de abajo fijo: no tapa la ficha
+    const desde = enPared(r.angulo, sala.radio - 0.2, ALTURA);
+    const hasta = enPared(r.angulo, AMPLIADA.distancia, y);
+    r.ampliada = crear('a-entity', {
+      visible: false, position: hasta, rotation: `0 ${-r.angulo} 0`,
+      // Sale de la pared hacia el visitante.
+      animation__sale: `property: position; from: ${desde}; to: ${hasta}; dur: 300; easing: easeOutCubic; startEvents: mostrar`,
+      animation__crece: 'property: scale; from: 0.6 0.6 0.6; to: 1 1 1; dur: 300; easing: easeOutCubic; startEvents: mostrar',
+    });
+    r.ampliada.appendChild(crear('a-plane', {
+      width: AMPLIADA.ancho + 2 * borde, height: alto + 2 * borde,
+      material: `shader: flat; color: ${COLOR.amarillo}`,
+    }));
+    r.ampliadaImagen = crear('a-image', {
+      src: r.revista.objetivo, width: AMPLIADA.ancho, height: alto, position: '0 0 0.005', material: 'shader: flat',
+    });
+    r.ampliadaImagen.addEventListener('click', () => abrirVideo(r.revista, r.angulo));
+    r.ampliadaImagen.addEventListener('mouseleave', vigilarAmpliada);
+    r.ampliada.appendChild(r.ampliadaImagen);
+
     r.ficha = crear('a-image', {
       src: lienzoFicha(r.revista), visible: false, width: FICHA.ancho, height: FICHA.alto,
       position: enPared(r.angulo, FICHA.distancia, FICHA.y),
       rotation: `${-inclinacion} ${-r.angulo} 0`,
       material: 'shader: flat',
-      animation__entra: 'property: scale; from: 0.85 0.85 0.85; to: 1 1 1; dur: 180; easing: easeOutQuad; startEvents: mostrar',
+      animation__entra: 'property: scale; from: 0.85 0.85 0.85; to: 1 1 1; dur: 220; easing: easeOutQuad; startEvents: mostrar',
     });
-    galeria.appendChild(r.ficha);
+    galeria.append(r.ampliada, r.ficha);
   });
 }
 
-function mostrarFicha(r) {
-  if (abierta || leyendo) return;
-  clearInterval(fichaVigia);
-  if (fichaVisible && fichaVisible !== r) fichaVisible.ficha.setAttribute('visible', false);
-  if (fichaVisible !== r) r.ficha.emit('mostrar');
-  fichaVisible = r;
-  r.ficha.setAttribute('visible', true);
+// Mirar un cuadro un momento: su portada sale de la pared, grande, y la galeria queda en
+// penumbra suave para que resalte.
+function programarAmpliada(r) {
+  clearTimeout(temporizadorAmpliar);
+  if (ampliada !== r) temporizadorAmpliar = setTimeout(() => mostrarAmpliada(r), AMPLIADA.esperaMs);
 }
 
-// Al dejar de mirar la portada, la ficha se queda mientras la cabeza siga hacia ese cuadro
-// (para bajar la mirada y leerla con calma) y se va al girar hacia otro lado.
-function vigilarFicha() {
-  clearInterval(fichaVigia);
-  const r = fichaVisible;
+function mostrarAmpliada(r) {
+  clearTimeout(temporizadorAmpliar);
+  if (abierta || leyendo || ampliada === r) return;
+  clearInterval(vigia);
+  if (ampliada) {
+    ampliada.ampliada.setAttribute('visible', false);
+    ampliada.ficha.setAttribute('visible', false);
+  }
+  ampliada = r;
+  for (const el of [r.ampliada, r.ficha]) {
+    el.setAttribute('visible', true);
+    el.emit('mostrar');
+  }
+  penumbra(true, true);
+  activar([...revistas.map(x => x.portada), r.ampliadaImagen]);
+  vigilarAmpliada(); // se va sola si la cabeza gira hacia otro lado
+}
+
+// Al dejar de mirarla, la portada ampliada y su ficha se quedan mientras la cabeza siga
+// hacia ese cuadro (para bajar la mirada y leer la ficha) y se van al girar hacia otro lado.
+function vigilarAmpliada() {
+  clearInterval(vigia);
+  const r = ampliada;
   if (!r) return;
   const direccion = new AFRAME.THREE.Vector3();
-  fichaVigia = setInterval(() => {
+  vigia = setInterval(() => {
     escena.camera.getWorldDirection(direccion);
     const vista = Math.atan2(direccion.x, -direccion.z) * 180 / Math.PI;
     const diferencia = Math.abs(((vista - r.angulo) % 360 + 540) % 360 - 180);
-    if (diferencia > FICHA.anguloMax) ocultarFicha();
+    if (diferencia > FICHA.anguloMax) ocultarAmpliada();
   }, 250);
 }
 
-function ocultarFicha() {
-  clearInterval(fichaVigia);
-  if (fichaVisible) fichaVisible.ficha.setAttribute('visible', false);
-  fichaVisible = null;
+function ocultarAmpliada() {
+  clearTimeout(temporizadorAmpliar);
+  clearInterval(vigia);
+  if (!ampliada) return;
+  ampliada.ampliada.setAttribute('visible', false);
+  ampliada.ficha.setAttribute('visible', false);
+  ampliada = null;
+  penumbra(false);
+  activar(revistas.map(x => x.portada));
 }
 
 function resaltar(grupo, resalte, si) {
@@ -657,8 +754,11 @@ function activar(elementos) {
 }
 
 // Modo cine: la galeria queda en penumbra detras de la pantalla o del lector.
-function penumbra(si) {
-  $('penumbra').setAttribute('visible', si);
+// suave: con la portada ampliada (la galeria se ve detras); fuerte: con el video o la revista.
+function penumbra(si, suave = false) {
+  const el = $('penumbra');
+  el.setAttribute('visible', si);
+  if (si) [...el.children].forEach(c => c.setAttribute('material', 'opacity', suave ? 0.55 : 0.84));
   $('atril').setAttribute('visible', !si);
 }
 
@@ -712,7 +812,7 @@ function prepararBoton(b, ancho) {
 function abrirVideo(revista, angulo) {
   if (abierta || leyendo) return;
   abierta = { revista, angulo };
-  ocultarFicha();
+  ocultarAmpliada();
   clearTimeout(temporizadorFin);
   contarEvento(`sala-${revista.id}`, `Sala · ${revista.id}`);
 
@@ -841,8 +941,9 @@ function construirLector() {
   $('lector-siguiente').setAttribute('src', lienzoFlecha('›'));
   $('lector-volver').setAttribute('src', lienzoBoton('‹  Volver', COLOR.amarillo, COLOR.azul));
   $('lector-video').setAttribute('src', lienzoBoton('▶  Ver video', COLOR.blanco, COLOR.azul));
-  $('lector-alejar').setAttribute('src', lienzoBoton('Alejar', COLOR.blanco, COLOR.azul));
-  for (const id of ['lector-volver', 'lector-video', 'lector-alejar']) prepararBoton($(id), 0.56);
+  $('lector-acercar').setAttribute('src', lienzoBoton('+  Acercar', COLOR.rojo, COLOR.blanco));
+  $('lector-alejar').setAttribute('src', lienzoBoton('−  Alejar', COLOR.rojo, COLOR.blanco));
+  for (const id of ['lector-volver', 'lector-video', 'lector-acercar', 'lector-alejar']) prepararBoton($(id), 0.56);
   for (const id of ['lector-anterior', 'lector-siguiente']) {
     const b = $(id);
     b.setAttribute('width', 0.32);
@@ -858,6 +959,11 @@ function construirLector() {
     cerrarLector();
     abrirVideo(revista, angulo);
   });
+  // Acercar: la primera pagina de la vista, grande; las flechas pasan de a una pagina.
+  $('lector-acercar').addEventListener('click', () => {
+    leyendo.cerca = vistas(leyendo.revista.paginas)[leyendo.vista][0];
+    mostrarVista();
+  });
   $('lector-alejar').addEventListener('click', () => {
     // Vuelve a la doble pagina donde esta la pagina que se estaba leyendo.
     const pagina = leyendo.cerca;
@@ -865,20 +971,12 @@ function construirLector() {
     leyendo.vista = vistas(leyendo.revista.paginas).findIndex(v => v.includes(pagina));
     mostrarVista();
   });
-  for (const id of ['pagina-1', 'pagina-2']) {
-    $(id).addEventListener('click', () => {
-      if (leyendo && !leyendo.cerca) {
-        leyendo.cerca = Number($(id).dataset.pagina);
-        mostrarVista();
-      }
-    });
-  }
 }
 
 function abrirLector(revista, angulo) {
   if (leyendo || !revista.paginas) return;
   leyendo = { revista, angulo, vista: 0, cerca: null };
-  ocultarFicha();
+  ocultarAmpliada();
   contarEvento(`sala-leer-${revista.id}`, `Sala · leer ${revista.id}`);
   lector.setAttribute('position', enPared(angulo, DIST_LECTOR, 1.6));
   lector.setAttribute('rotation', `0 ${-angulo} 0`);
@@ -952,25 +1050,24 @@ async function mostrarVista() {
   titulo.setAttribute('height', 2.0 * 200 / 1400);
   titulo.setAttribute('position', `0 ${altoPagina / 2 + 0.2} 0`);
 
-  // Botones: con las paginas lejos, abajo; con una pagina cerca, bajo las flechas
-  // (abajo quedaria a la altura de los pies).
+  // Botones: con las paginas en tamaño normal, abajo (Volver · Acercar · Ver video); con
+  // una pagina cerca, «Alejar» bajo la flecha izquierda (abajo quedaria a la altura de los pies).
+  // Las paginas no se eligen con la mirada: se leen mirandolas sin que se muevan.
   const yBotones = actual.cerca ? -0.42 : -(altoPagina / 2 + 0.2);
   $('lector-volver').setAttribute('visible', !actual.cerca);
   $('lector-video').setAttribute('visible', !actual.cerca);
+  $('lector-acercar').setAttribute('visible', !actual.cerca);
   $('lector-alejar').setAttribute('visible', !!actual.cerca);
-  $('lector-volver').setAttribute('position', `-0.33 ${yBotones} 0.02`);
-  $('lector-video').setAttribute('position', `0.33 ${yBotones} 0.02`);
+  $('lector-volver').setAttribute('position', `-0.62 ${yBotones} 0.02`);
+  $('lector-acercar').setAttribute('position', `0 ${yBotones} 0.02`);
+  $('lector-video').setAttribute('position', `0.62 ${yBotones} 0.02`);
   $('lector-alejar').setAttribute('position', `${-xFlecha} ${yBotones} 0.02`);
 
   const elegibles = [];
   if (hayAnterior) elegibles.push($('lector-anterior'));
   if (haySiguiente) elegibles.push($('lector-siguiente'));
-  if (actual.cerca) {
-    elegibles.push($('lector-alejar'));
-  } else {
-    elegibles.push($('lector-volver'), $('lector-video'));
-    paginas.forEach((_, i) => elegibles.push($(`pagina-${i + 1}`)));
-  }
+  if (actual.cerca) elegibles.push($('lector-alejar'));
+  else elegibles.push($('lector-volver'), $('lector-acercar'), $('lector-video'));
   activar(elegibles);
 
   // Deja lista la siguiente vista para que el cambio sea inmediato.
@@ -1055,8 +1152,8 @@ function lienzoTituloLector(revista, texto, conAyuda) {
     ctx.fillText(`${revista.curso} · ${revista.equipo} · ${texto}`, 700, 66, 1360);
     ctx.fillStyle = '#c7d2fe';
     ctx.font = `600 44px ${FUENTE}`;
-    ctx.fillText(conAyuda ? 'Mira fijo una página para acercarla · las flechas pasan la página'
-      : 'Mueve la cabeza para leer · las flechas pasan la página', 700, 145, 1360);
+    ctx.fillText(conAyuda ? 'Mira «Acercar» para leer de cerca · las flechas pasan la página'
+      : 'Mueve la cabeza para leer · «Alejar» vuelve a la doble página', 700, 145, 1360);
   });
 }
 

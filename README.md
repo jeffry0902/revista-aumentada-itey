@@ -338,7 +338,9 @@ piso de madera, techo con claraboya y un riel de luces. **Cada portada es un cua
 cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucción** ("Mira fijo una portada
 2 segundos y se reproduce su video") y un letrero colgado del techo con el nombre de la feria.
 
-- **Mirar fijo un cuadro 2 segundos** abre su video en una pantalla gigante y la galería queda en penumbra (modo cine).
+- **Mirar un cuadro** medio segundo: su **portada sale de la pared**, grande y con borde amarillo, a 1,7 m, con su
+  **ficha** (curso, equipo y título) debajo y la galería en penumbra suave. **Seguir mirando la portada 2 segundos**
+  abre su video en una pantalla gigante (modo cine). Al girar la cabeza hacia otro lado, la portada vuelve a la pared.
   Mirar **«Volver»** 2 segundos regresa. Al terminar un video, la galería vuelve sola a los 6 segundos.
 - Si la revista tiene sus páginas, junto al video aparece **«Leer revista»** (ver abajo).
 - Dirección: `https://jeffry0902.github.io/revista-aumentada-itey/sala.html` (también está en la página de inicio).
@@ -358,8 +360,14 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
     las letras de las cartelas.
   - Los celulares de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
 - **Nitidez:** en modo gafas se pide a Chrome la resolución completa de la pantalla (antes dibujaba a una resolución
-  menor y se veía más borroso dentro de las gafas que fuera). Al mirar un cuadro aparece su **ficha grande y cerca**
-  (curso, equipo y título): lo cercano se ve nítido en las gafas, como el lector de la revista.
+  menor y se veía más borroso dentro de las gafas que fuera). La portada ampliada y la ficha están cerca porque lo
+  cercano se ve nítido en las gafas, como el lector de la revista.
+- **Borroso al girar la cabeza:** la pantalla del celular deja cada imagen encendida hasta la siguiente y, al mover la
+  cabeza, se "arrastra" (las gafas VR dedicadas apagan la imagen entre cuadros; un celular no puede). Menos se nota
+  cuantos más cuadros por segundo: la galería le pide a Chrome lo máximo que permita (A-Frame lo dejaba en 60–72).
+  En el Samsung: Ajustes → Pantalla → **Fluidez de movimiento → Adaptable** (hasta 120 Hz) y **sin Ahorro de energía**.
+  Para medirlo dentro de las gafas: abrir `sala.html?cps` (abajo, en verde, los cuadros por segundo; en rojo si
+  bajan de 55, que es cuando más se nota el arrastre).
 - **iPhone:** Safari no tiene modo gafas propio y A-Frame usa un reemplazo que no conocía los iPhone del 12 en adelante:
   suponía una pantalla de 10,4 cm y se veía doble. `js/pantalla.js` calcula el tamaño real de cada iPhone (por la
   densidad de su pantalla) y lo corrige. Para usarlo:
@@ -389,8 +397,9 @@ Cada revista puede llevar sus páginas para hojearla dentro de las gafas:
 
 En la galería, la cartela del cuadro dice "revista de N páginas" y junto al video sale **«Leer revista»**:
 - La revista se abre **a doble página**, como en papel: la portada sola, luego 2–3, 4–5…
-- **Mirar fijo una página la acerca**: queda grande, casi de piso a techo, y se lee **moviendo la cabeza**.
-  **«Alejar»** vuelve a la doble página.
+- Las páginas se ven en tamaño normal y se pueden leer mirándolas sin que se muevan. Abajo: **«Volver»**,
+  **«Acercar»** y **«Ver video»**. **«Acercar»** pone la página grande, casi de piso a techo, y se lee **moviendo la
+  cabeza**; ahí las flechas pasan de a una página y **«Alejar»** vuelve a la doble página.
 - Las **flechas amarillas** pasan la página (o la doble página). **«Ver video»** salta al video del equipo.
 
 Las dos revistas de ejemplo ya tienen sus páginas (escaneadas): `ejemplo` (12 páginas) y `ejemplo-moda` (16).
