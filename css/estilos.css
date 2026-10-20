@@ -38,6 +38,7 @@ img { max-width: 100%; }
 /* ---------- Franja institucional ---------- */
 
 .franja {
+  padding-top: env(safe-area-inset-top); /* iPhone abierto como app: la hora queda encima */
   background: linear-gradient(90deg, var(--azul-800), var(--azul-600));
   border-bottom: 5px solid var(--rojo);
   color: var(--blanco);

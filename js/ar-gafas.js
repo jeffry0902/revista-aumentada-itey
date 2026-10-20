@@ -13,12 +13,19 @@
 //      y, vista a traves de las lentes, la imagen se ve recta.
 // Mirar un boton 3D 2 segundos lo elige, igual que en la sala virtual.
 
+import { pxPorMm } from './pantalla.js';
+
 const ESPERA_MIRADA_MS = 1800; // igual que el cursor de la sala
 
 // Medido en la sala virtual (A-Frame en modo gafas) en un Samsung de 6,9":
 // cada visor es un cuadrado de 36 % del ancho de la pantalla, centrado al 31 % y
 // al 69 % del ancho y al 56 % del alto.
+// Asi queda en Android, donde no se puede saber el tamaño fisico de la pantalla.
 const VISOR = { lado: 0.36, centroX: 0.19, centroY: 0.56 };
+// En iPhone si se sabe (js/pantalla.js): los visores van donde A-Frame los pone en la
+// sala, frente a las lentes de las gafas, en milimetros: centros a 60 mm entre si y a
+// 31 mm del borde de abajo, de 56 mm de lado. Asi se ven bien en iPhone grandes y pequeños.
+const VISOR_MM = { lado: 56, separacion: 60, alturaCentro: 31 };
 // Deformacion de las lentes. Los coeficientes de Cardboard (0,34 y 0,55) se veian
 // como ojo de pez en las gafas VR Box del colegio: estos son mas suaves y conservan
 // los lados redondeados.
@@ -65,6 +72,18 @@ export function prepararGafas({ escena, sistema: s, cursor, salir }) {
   document.body.appendChild(salida);
   prepararWebGL();
 
+  // En iPhone la pagina no puede girar la pantalla: si sigue vertical, se pide acostarlo.
+  const girar = document.createElement('div');
+  girar.className = 'gafas-girar';
+  girar.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="16" rx="2"/><path d="M20 14a8 8 0 0 1-8 8M17 22l3-1 1-3"/></svg>' +
+    '<p>Acuesta el celular para usar las gafas</p><small>En iPhone, quita el bloqueo de rotación en el Centro de control.</small>' +
+    '<button class="boton boton--blanco" type="button">Salir del modo gafas</button>';
+  girar.querySelector('button').addEventListener('click', e => {
+    e.stopPropagation();
+    salirGafas();
+  });
+  document.body.appendChild(girar);
+
   // Fuera de las gafas: tocar la pantalla muestra el boton para salir.
   const botonSalir = document.createElement('button');
   botonSalir.className = 'gafas-salir boton boton--blanco';
@@ -86,6 +105,10 @@ export function prepararGafas({ escena, sistema: s, cursor, salir }) {
   document.addEventListener('fullscreenchange', () => {
     if (activo && !document.fullscreenElement) salirGafas();
   });
+  // El navegador suelta el permiso de pantalla encendida cada vez que la pagina se oculta.
+  document.addEventListener('visibilitychange', () => {
+    if (activo && !document.hidden) pedirPantallaEncendida();
+  });
 
   // Progreso de la mirada sobre un boton.
   cursor.addEventListener('fusing', () => { inicioMirada = performance.now(); });
@@ -104,8 +127,15 @@ export async function entrarGafas() {
   } catch {
     // iPhone no deja: el visitante gira el celular a mano.
   }
+  pedirPantallaEncendida();
+}
+
+async function pedirPantallaEncendida() {
   try {
-    if ('wakeLock' in navigator) bloqueo = await navigator.wakeLock.request('screen');
+    if ('wakeLock' in navigator && !bloqueo) {
+      bloqueo = await navigator.wakeLock.request('screen');
+      bloqueo.addEventListener('release', () => { bloqueo = null; });
+    }
   } catch {
     // Opcional.
   }
@@ -189,8 +219,7 @@ function dibujarTexto(x, y, maxAncho) {
   const ancho = Math.min(maxAncho, octx.measureText(texto).width + 44);
   const alto = 50;
   octx.fillStyle = 'rgba(19,32,74,0.95)';
-  octx.beginPath();
-  octx.roundRect(x - ancho / 2, y - alto / 2, ancho, alto, alto / 2);
+  pastilla(octx, x - ancho / 2, y - alto / 2, ancho, alto, alto / 2);
   octx.fill();
   octx.fillStyle = '#fff';
   octx.fillText(texto, x, y + 2, maxAncho - 30);
@@ -209,7 +238,12 @@ void main() {
 // p va de -1 a 1 en el visor. Cada punto toma la imagen de mas afuera cuanto mas
 // lejos esta del centro (deformacion de barril): las lentes la vuelven a enderezar.
 const FRAGMENTOS = `
+// highp: con mediump la posicion en la imagen tiene poca precision y se ve borroso.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 uniform sampler2D imagen;
 uniform vec2 lente;
 varying vec2 p;
@@ -253,7 +287,8 @@ function prepararWebGL() {
 }
 
 function dibujar() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Toda la resolucion de la pantalla (el S25 Ultra tiene ~3): con menos, el navegador agranda y se ve borroso.
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
   const W = salida.clientWidth, H = salida.clientHeight;
   if (!W || !H) return;
   if (salida.width !== Math.round(W * dpr) || salida.height !== Math.round(H * dpr)) {
@@ -267,10 +302,39 @@ function dibujar() {
   gl.viewport(0, 0, salida.width, salida.height);
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
-  const lado = Math.min(W * VISOR.lado, H * 0.86) * dpr;
-  const cy = (1 - VISOR.centroY) * H * dpr; // WebGL cuenta desde abajo
-  for (const cx of [(0.5 - VISOR.centroX) * W * dpr, (0.5 + VISOR.centroX) * W * dpr]) {
-    gl.viewport(Math.round(cx - lado / 2), Math.round(cy - lado / 2), Math.round(lado), Math.round(lado));
+  const { lado, centros, cy } = medidasVisores(W, H);
+  for (const cx of centros) {
+    gl.viewport(Math.round((cx - lado / 2) * dpr), Math.round((cy - lado / 2) * dpr), Math.round(lado * dpr), Math.round(lado * dpr));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
+}
+
+// Lado de cada visor, centros horizontales y altura del centro (contada desde abajo, como
+// WebGL), en pixeles CSS.
+function medidasVisores(W, H) {
+  const mm = pxPorMm();
+  if (!mm) {
+    return {
+      lado: Math.min(W * VISOR.lado, H * 0.86),
+      centros: [(0.5 - VISOR.centroX) * W, (0.5 + VISOR.centroX) * W],
+      cy: (1 - VISOR.centroY) * H,
+    };
+  }
+  const cy = Math.min(VISOR_MM.alturaCentro * mm, H / 2);
+  const medio = (VISOR_MM.separacion / 2) * mm;
+  // El visor no puede pasar del borde de abajo ni montarse sobre el otro.
+  const lado = Math.min(VISOR_MM.lado * mm, 2 * cy, 2 * (H - cy), 2 * medio - 4, W - 2 * medio);
+  return { lado, centros: [W / 2 - medio, W / 2 + medio], cy };
+}
+
+// Rectangulo redondeado. ctx.roundRect no existe en Safari 15 (iPhone 6s, 7, SE de 1.ª generacion).
+export function pastilla(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) return ctx.roundRect(x, y, w, h, r);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }

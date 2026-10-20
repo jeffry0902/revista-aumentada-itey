@@ -1,0 +1,16 @@
+{
+  "name": "Revista Aumentada ITEY",
+  "short_name": "Revista ITEY",
+  "description": "Revistas de física del grado 11° del ITEY con realidad aumentada y galería virtual.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "background_color": "#0b1430",
+  "theme_color": "#13204a",
+  "lang": "es",
+  "icons": [
+    { "src": "img/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

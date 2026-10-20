@@ -6,6 +6,13 @@
   <title>Galería virtual · Revista Aumentada ITEY</title>
   <meta name="theme-color" content="#13204a">
   <link rel="icon" href="img/favicon.png">
+  <!-- "Agregar a pantalla de inicio": abre como app, sin la barra del navegador (en iPhone, la unica forma de quitarla) -->
+  <link rel="manifest" href="manifest-sala.webmanifest">
+  <link rel="apple-touch-icon" href="img/icono-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Galería ITEY">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="css/estilos.css">
   <link rel="stylesheet" href="css/sala.css">
   <!-- Misma version de A-Frame que la camara: trae el modo de gafas (pantalla partida) para celulares. -->
@@ -14,9 +21,9 @@
 <body class="pagina-sala">
   <!-- La escena 3D la arma js/sala.js con las revistas de revistas.json. -->
   <a-scene id="escena"
-           renderer="colorManagement: true; antialias: true"
+           renderer="colorManagement: true; antialias: true; anisotropy: 16; foveationLevel: 0"
            vr-mode-ui="enabled: true"
-           device-orientation-permission-ui="enabled: true"
+           device-orientation-permission-ui="enabled: true; deviceMotionMessage: Para mirar alrededor moviendo el celular, permite el acceso a los sensores de movimiento.; allowButtonText: Permitir; denyButtonText: No permitir; cancelButtonText: Cancelar; httpsMessage: Abre la galería con https para usar las gafas."
            loading-screen="enabled: false">
     <a-assets timeout="15000"></a-assets>
 
@@ -104,6 +111,19 @@
         <li>Si la revista tiene páginas, mira <strong>«Leer revista»</strong> para hojearla completa.</li>
         <li>Para salir, <strong>mira «Volver» 2 segundos</strong>.</li>
       </ol>
+      <div id="nota-iphone" class="sala-nota" hidden>
+        <strong>En iPhone:</strong>
+        <ul>
+          <li id="nota-barra">Para que no estorbe la barra de Safari, toca <strong>Compartir → «Agregar a inicio»</strong>
+            y abre la galería desde ese ícono (se abre a pantalla completa).</li>
+          <li>Quita el <strong>bloqueo de rotación</strong> (Centro de control, el candado con la flecha) y acuesta el celular
+            después de tocar «Entrar con gafas».</li>
+          <li>Si pide permiso para el movimiento del celular, toca <strong>«Permitir»</strong>.</li>
+          <li>Apaga el <strong>Modo de bajo consumo</strong> (con él la imagen va a saltos) y pon
+            Ajustes → Pantalla y brillo → <strong>Bloqueo automático → Nunca</strong> (si no, la pantalla se apaga en las gafas).</li>
+          <li>Si usas <strong>Zoom de pantalla</strong> (Ajustes → Pantalla y brillo), ponlo en «Predeterminado»: con zoom se ve doble.</li>
+        </ul>
+      </div>
       <a class="sala-volver" href="./">‹ Volver al inicio</a>
     </div>
   </div>
