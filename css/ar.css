@@ -232,4 +232,5 @@
   .gafas-girar svg { width: 72px; height: 72px; color: var(--amarillo); }
   .gafas-girar p { margin: 0; font-size: 1.2rem; font-weight: 800; }
   .gafas-girar small { color: #c7d2fe; font-size: .95rem; max-width: 300px; }
+  .gafas-girar .boton { margin-top: 12px; }
 }

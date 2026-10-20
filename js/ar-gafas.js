@@ -76,7 +76,12 @@ export function prepararGafas({ escena, sistema: s, cursor, salir }) {
   const girar = document.createElement('div');
   girar.className = 'gafas-girar';
   girar.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="16" rx="2"/><path d="M20 14a8 8 0 0 1-8 8M17 22l3-1 1-3"/></svg>' +
-    '<p>Acuesta el celular para usar las gafas</p><small>En iPhone, quita el bloqueo de rotación en el Centro de control.</small>';
+    '<p>Acuesta el celular para usar las gafas</p><small>En iPhone, quita el bloqueo de rotación en el Centro de control.</small>' +
+    '<button class="boton boton--blanco" type="button">Salir del modo gafas</button>';
+  girar.querySelector('button').addEventListener('click', e => {
+    e.stopPropagation();
+    salirGafas();
+  });
   document.body.appendChild(girar);
 
   // Fuera de las gafas: tocar la pantalla muestra el boton para salir.

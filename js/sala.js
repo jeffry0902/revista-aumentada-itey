@@ -21,13 +21,13 @@ const $ = id => document.getElementById(id);
 // Medidas en metros. Los ojos estan a 1,6 m.
 const ALTO_SALA = 3.8;
 const LADOS_MIN = 12;       // la galeria es un poligono: una pared por cuadro (minimo 12 paredes)
-const PARED_MIN = 1.4;      // ancho minimo de cada pared (si hay muchas revistas, la sala crece)
+const PARED_MIN = 1.5;      // ancho minimo de cada pared: cuadro y cartela sin tocar las columnas (con mas de 12 revistas, la sala crece)
 const RADIO_MIN = 2.9;      // distancia del visitante a las paredes (mas cerca, las letras se leen mejor)
 const ALTURA = 1.72;        // centro de los cuadros (un poco arriba de los ojos, como en un museo)
 const ANCHO_PORTADA = 1.0;
 // Ficha grande que aparece cerca al mirar un cuadro: en las gafas, lo cercano se ve
 // nitido (como el lector) y las cartelas de la pared se ven pequeñas.
-const FICHA = { distancia: 1.5, ancho: 1.15, alto: 1.15 * 420 / 1100, y: 1.05, esperaMs: 3500 };
+const FICHA = { distancia: 1.5, ancho: 1.15, alto: 1.15 * 420 / 1100, y: 1.05, anguloMax: 28 };
 const MOLDURA = 0.07;       // marco de madera
 const PASPARTU = 0.06;      // borde blanco entre el marco y la portada
 const DIST_PANTALLA = 2.2;  // distancia de la pantalla del video
@@ -79,6 +79,12 @@ async function iniciar() {
   }
 
   await esperarEscena();
+  // Nitidez en Android: el modo gafas lo hace Chrome (WebXR), que dibuja al 70 % de la
+  // resolucion de la pantalla: por eso fuera de las gafas se ve nitido y dentro no. Se le pide
+  // la resolucion completa (Chrome no deja pasar de la de la pantalla). Solo con WebXR: en
+  // iPhone el reemplazo de A-Frame ya dibuja a resolucion completa y no tiene ese limite
+  // (se dibujaria 4 veces mas y se trabaria). Vale para cualquier forma de entrar a las gafas.
+  if (escena.hasWebXR) escena.renderer.xr.setFramebufferScaleFactor(ESCALA_GAFAS);
   await Promise.all(lista.map(r => medir(r.objetivo)));
   sala = medidasSala(lista.length);
   // La penumbra del modo cine va entre la pantalla del video (esquinas a ~2,7 m) y las paredes.
@@ -87,7 +93,7 @@ async function iniciar() {
   await construirTitulo(datos.evento || 'Feria de la Ciencia');
   construirAtril();
   construirCuadros(lista);
-  construirFicha();
+  construirFichas();
   construirPantalla();
   construirLector();
   ordenRender($('penumbra'), 1);
@@ -114,6 +120,8 @@ async function iniciar() {
     }
   });
   escena.addEventListener('exit-vr', () => { if (!$('entrada').hidden) return; salir(); });
+  // «No permitir» en el aviso de A-Frame al cargar (iPhone).
+  escena.addEventListener('deviceorientationpermissionrejected', sinSensores);
 }
 
 function esperarEscena() {
@@ -132,10 +140,6 @@ function entrar(conGafas) {
   $('boton-salir').hidden = conGafas;
   contarEvento(conGafas ? 'sala-gafas' : 'sala-sin-gafas', conGafas ? 'Sala · con gafas' : 'Sala · sin gafas');
   if (conGafas) {
-    // En Android el modo gafas lo hace Chrome, que dibuja a una resolucion "recomendada"
-    // mas baja que la de la pantalla: por eso fuera de las gafas se ve nitido y dentro no.
-    // Se le pide la resolucion completa (Chrome la limita a la de la pantalla).
-    escena.renderer.xr.setFramebufferScaleFactor(ESCALA_GAFAS);
     // enterVR debe llamarse dentro del toque (pide pantalla completa).
     escena.enterVR().catch(() => {
       // Si el navegador no tiene modo gafas, queda en modo "ventana" moviendo el celular.
@@ -164,14 +168,25 @@ function desbloquearAudio() {
 // iPhone: los sensores de movimiento necesitan permiso, y solo se puede pedir con un
 // toque. A-Frame muestra su propio aviso al cargar (traducido en sala.html); si el
 // visitante no lo contesto, se pide aqui, con el toque de «Entrar».
+// Se pregunta siempre (si ya se contesto, responde al instante sin aviso): A-Frame marca el
+// permiso como dado aunque el visitante haya tocado «No permitir».
 function pedirSensores() {
+  if (!window.DeviceOrientationEvent || !DeviceOrientationEvent.requestPermission) return;
   const ui = escena.components['device-orientation-permission-ui'];
-  if (!window.DeviceOrientationEvent || !DeviceOrientationEvent.requestPermission || (ui && ui.permissionGranted)) return;
   DeviceOrientationEvent.requestPermission().then(estado => {
-    if (estado !== 'granted') return;
-    if (ui) ui.permissionGranted = true;
-    escena.emit('deviceorientationpermissiongranted'); // asi A-Frame empieza a seguir el celular
+    if (estado !== 'granted') return sinSensores();
+    if (ui && !ui.permissionGranted) {
+      ui.permissionGranted = true;
+      escena.emit('deviceorientationpermissiongranted'); // asi A-Frame empieza a seguir el celular
+    }
   }).catch(() => {});
+}
+
+// Sin permiso de movimiento la galeria no sigue la cabeza: se sale y se explica.
+function sinSensores() {
+  salir();
+  $('estado-carga').textContent = 'El iPhone no dejó usar el movimiento del celular, y sin eso la galería no sigue la cabeza. ' +
+    'Cierra Safari (o la app de la galería) deslizándola hacia arriba, vuelve a abrir la galería y toca «Permitir».';
 }
 
 // La pantalla no debe apagarse dentro de las gafas. El navegador suelta este permiso
@@ -232,8 +247,8 @@ async function construirGaleria(n) {
     });
     // Columnas en las esquinas entre paredes.
     const columna = crear('a-box', {
-      width: 0.2, depth: 0.12, height: ALTO_SALA,
-      position: enPared(angulo + sala.paso / 2, esquina - 0.05, ALTO_SALA / 2),
+      width: 0.12, depth: 0.08, height: ALTO_SALA,
+      position: enPared(angulo + sala.paso / 2, esquina - 0.04, ALTO_SALA / 2),
       rotation: `0 ${-(angulo + sala.paso / 2)} 0`,
       material: 'color: #e6dccb; roughness: 1',
     });
@@ -486,7 +501,7 @@ function construirCuadros(lista) {
 
     const datos = { revista, angulo, el: grupo, resalte, portada };
     portada.addEventListener('mouseenter', () => { resaltar(grupo, resalte, true); mostrarFicha(datos); });
-    portada.addEventListener('mouseleave', () => { resaltar(grupo, resalte, false); ocultarFicha(FICHA.esperaMs); });
+    portada.addEventListener('mouseleave', () => { resaltar(grupo, resalte, false); vigilarFicha(); });
     portada.addEventListener('click', () => abrirVideo(revista, angulo));
     revistas.push(datos);
   });
@@ -531,35 +546,53 @@ function dibujarMarco(ctx, ancho, alto, sombra) {
 
 // ---------------------------------------------------------------- ficha cercana
 
-let fichaTemporizador = null;
-const fichas = new Map(); // textura de la ficha de cada revista
+let fichaVisible = null;    // revista cuya ficha se ve
+let fichaVigia = null;
 
-function construirFicha() {
-  galeria.appendChild(crear('a-image', {
-    id: 'ficha', visible: false, width: FICHA.ancho, height: FICHA.alto, material: 'shader: flat',
-  }));
-}
-
-// Entre el visitante y el cuadro, debajo de la portada para no taparla, inclinada hacia los ojos.
-function mostrarFicha({ revista, angulo }) {
-  if (abierta || leyendo) return;
-  clearTimeout(fichaTemporizador);
-  if (!fichas.has(revista.id)) fichas.set(revista.id, lienzoFicha(revista));
-  const ficha = $('ficha');
+// Una ficha por revista, ya dibujada y en su sitio: al mirar un cuadro solo se muestra.
+// Va entre el visitante y el cuadro, debajo de la portada para no taparla, inclinada hacia los ojos.
+function construirFichas() {
   const inclinacion = Math.atan2(1.6 - FICHA.y, FICHA.distancia) * 180 / Math.PI;
-  ficha.setAttribute('src', fichas.get(revista.id));
-  ficha.setAttribute('position', enPared(angulo, FICHA.distancia, FICHA.y));
-  ficha.setAttribute('rotation', `${-inclinacion} ${-angulo} 0`);
-  ficha.setAttribute('visible', true);
-  ficha.setAttribute('animation__entra', 'property: scale; from: 0.85 0.85 0.85; to: 1 1 1; dur: 180; easing: easeOutQuad');
+  revistas.forEach(r => {
+    r.ficha = crear('a-image', {
+      src: lienzoFicha(r.revista), visible: false, width: FICHA.ancho, height: FICHA.alto,
+      position: enPared(r.angulo, FICHA.distancia, FICHA.y),
+      rotation: `${-inclinacion} ${-r.angulo} 0`,
+      material: 'shader: flat',
+      animation__entra: 'property: scale; from: 0.85 0.85 0.85; to: 1 1 1; dur: 180; easing: easeOutQuad; startEvents: mostrar',
+    });
+    galeria.appendChild(r.ficha);
+  });
 }
 
-// Se queda unos segundos al dejar de mirar el cuadro: da tiempo de bajar la mirada y leerla.
-function ocultarFicha(esperaMs = 0) {
-  clearTimeout(fichaTemporizador);
-  const ocultar = () => $('ficha').setAttribute('visible', false);
-  if (esperaMs) fichaTemporizador = setTimeout(ocultar, esperaMs);
-  else ocultar();
+function mostrarFicha(r) {
+  if (abierta || leyendo) return;
+  clearInterval(fichaVigia);
+  if (fichaVisible && fichaVisible !== r) fichaVisible.ficha.setAttribute('visible', false);
+  if (fichaVisible !== r) r.ficha.emit('mostrar');
+  fichaVisible = r;
+  r.ficha.setAttribute('visible', true);
+}
+
+// Al dejar de mirar la portada, la ficha se queda mientras la cabeza siga hacia ese cuadro
+// (para bajar la mirada y leerla con calma) y se va al girar hacia otro lado.
+function vigilarFicha() {
+  clearInterval(fichaVigia);
+  const r = fichaVisible;
+  if (!r) return;
+  const direccion = new AFRAME.THREE.Vector3();
+  fichaVigia = setInterval(() => {
+    escena.camera.getWorldDirection(direccion);
+    const vista = Math.atan2(direccion.x, -direccion.z) * 180 / Math.PI;
+    const diferencia = Math.abs(((vista - r.angulo) % 360 + 540) % 360 - 180);
+    if (diferencia > FICHA.anguloMax) ocultarFicha();
+  }, 250);
+}
+
+function ocultarFicha() {
+  clearInterval(fichaVigia);
+  if (fichaVisible) fichaVisible.ficha.setAttribute('visible', false);
+  fichaVisible = null;
 }
 
 function resaltar(grupo, resalte, si) {
@@ -717,9 +750,11 @@ function abrirVideo(revista, angulo) {
   video.muted = false;
   video.src = revista.video;
   video.currentTime = 0;
-  video.play().catch(() => {
-    // El celular no dejo sonar el video (por ejemplo, en modo de bajo consumo): sigue sin
-    // sonido para que al menos se vea, y un toque en la pantalla le activa el sonido.
+  video.play().catch(error => {
+    // Solo si el celular no dejo sonar el video (por ejemplo, en modo de bajo consumo) y sigue
+    // abierto (cerrarlo mientras carga tambien rechaza play()): sigue sin sonido para que al
+    // menos se vea, y un toque en la pantalla le activa el sonido.
+    if (error.name !== 'NotAllowedError' || !abierta || abierta.revista !== revista) return;
     video.muted = true;
     video.play().catch(() => {});
     mostrarAviso('Toca la pantalla para oír el video');
@@ -971,13 +1006,12 @@ function lienzoCartela(revista) {
     escribirTitulo(ctx, revista.titulo, { x: 56, arriba: 112, abajo: 300, ancho: 1110, tamanos: [70, 60, 52] });
     // Pie: que se puede hacer con este cuadro.
     ctx.fillStyle = '#374151';
-    ctx.font = `700 50px ${FUENTE}`;
     const extra = revista.video360 ? 'video 360°' : 'video';
     const pie = revista.paginas ? `Mira fijo: ${extra} · revista de ${revista.paginas} pág.` : `Mira fijo 2 segundos: ${extra}`;
     ctx.beginPath();
     ctx.moveTo(56, 326); ctx.lineTo(56, 368); ctx.lineTo(92, 347); ctx.closePath();
     ctx.fill();
-    ctx.fillText(pie, 110, 365, 1060);
+    escribirLinea(ctx, pie, 110, 365, 1060, [50, 44, 38]);
   });
 }
 
@@ -994,10 +1028,9 @@ function lienzoFicha(revista) {
     ctx.fillStyle = COLOR.azul;
     escribirTitulo(ctx, revista.titulo, { x: 550, arriba: 104, abajo: 300, ancho: 1040, tamanos: [68, 58, 50] });
     ctx.fillStyle = '#374151';
-    ctx.font = `700 46px ${FUENTE}`;
-    const extra = revista.video360 ? 'el video 360°' : 'el video';
-    ctx.fillText(revista.paginas ? `Mira fijo la portada: ${extra} y la revista de ${revista.paginas} páginas`
-      : `Mira fijo la portada 2 segundos: ${extra}`, 550, 350, 1040);
+    const extra = revista.video360 ? 'video 360°' : 'video';
+    escribirLinea(ctx, revista.paginas ? `Mira fijo la portada: ${extra} · revista de ${revista.paginas} pág.`
+      : `Mira fijo la portada 2 segundos: ${extra}`, 550, 350, 1040, [46, 40, 36]);
   });
 }
 
@@ -1085,11 +1118,22 @@ function escribirTitulo(ctx, texto, { x, arriba, abajo, ancho, tamanos }) {
   const caben = Math.max(1, Math.floor((abajo - arriba) / (tamano * 1.12)));
   if (lineas.length > caben) {
     lineas = lineas.slice(0, caben);
-    lineas[caben - 1] += '…';
+    let ultima = lineas[caben - 1];
+    while (ultima.includes(' ') && ctx.measureText(ultima + '…').width > ancho) ultima = ultima.slice(0, ultima.lastIndexOf(' '));
+    lineas[caben - 1] = ultima + '…';
   }
   const alto = tamano * 1.12;
   const inicio = arriba + ((abajo - arriba) - alto * lineas.length) / 2 + tamano * 0.85;
   lineas.forEach((linea, i) => ctx.fillText(linea, x, inicio + i * alto, ancho));
+}
+
+// Una linea con la letra mas grande con la que cabe (sin apretarla).
+function escribirLinea(ctx, texto, x, y, ancho, tamanos) {
+  for (const t of tamanos) {
+    ctx.font = `700 ${t}px ${FUENTE}`;
+    if (ctx.measureText(texto).width <= ancho) break;
+  }
+  ctx.fillText(texto, x, y, ancho);
 }
 
 function envolver(ctx, texto, maxAncho) {

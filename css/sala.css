@@ -14,7 +14,9 @@
   /* flex-start + margin auto: centrado si cabe y con scroll completo si no (celular acostado) */
   align-items: flex-start;
   justify-content: center;
-  padding: 20px 16px;
+  /* zona segura: en iPhone abierto como app, la hora y la isla quedan encima de la pagina */
+  padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   background: radial-gradient(circle at 50% 20%, rgb(30 64 175 / .55), rgb(11 20 48 / .96) 70%);
   color: #fff;
   overflow-y: auto;

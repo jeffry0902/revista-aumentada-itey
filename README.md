@@ -369,6 +369,9 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
      «Entrar con gafas» hay que acostar el celular (sale un aviso en español mientras esté vertical).
   3. Si pide permiso para los sensores de movimiento, tocar **«Permitir»** (si no, la vista no sigue la cabeza).
   4. Ajustes → Pantalla y brillo → Bloqueo automático → **Nunca**, para que la pantalla no se apague dentro de las gafas.
+  5. Apagar el **Modo de bajo consumo** (con él Safari va a 30 cuadros por segundo y la imagen va a saltos) y dejar el
+     **Zoom de pantalla** en «Predeterminado» (con zoom el cálculo del tamaño falla y se ve doble). En el iPhone 12/13 mini
+     las imágenes quedan unos 4 mm más juntas: poner la rueda de las lentes al mínimo.
 - Para que suene: volumen alto del celular o audífonos bluetooth. Toallitas para limpiar entre visitantes y sesiones de 1–2 minutos.
 - Probado con las gafas reales en el S25 Ultra (se ve bien) y en un iPhone 13 y un iPhone 16 (se veía doble, corregido
   el 19 de octubre; falta volver a probar en iPhone).
