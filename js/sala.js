@@ -174,9 +174,9 @@ async function iniciar() {
 }
 
 // Mas cuadros por segundo = menos borroso al girar la cabeza: la pantalla del celular deja
-// cada imagen encendida hasta la siguiente y, al moverse el ojo, se arrastra. A-Frame fija
-// 60 o 72 en todo lo que no sea Oculus; se pide lo maximo que deje el celular (120 en el S25,
-// si Chrome lo permite). Sin soporte (iPhone, muchos Android) no hace nada.
+// cada imagen encendida hasta la siguiente y, al moverse el ojo, se arrastra. Elegir la
+// frecuencia solo lo permiten las gafas autonomas (Quest); en Chrome Android y en iPhone la
+// decide el celular (ver README) y esto no hace nada.
 function pedirMasCuadros() {
   const sesion = escena.xrSession;
   if (!sesion || !sesion.supportedFrameRates || !sesion.updateTargetFrameRate) return;
@@ -209,6 +209,7 @@ function entrar(conGafas) {
 }
 
 function salir() {
+  ocultarAmpliada();
   cerrarVideo();
   cerrarLector();
   if (escena.is('vr-mode')) escena.exitVR();
@@ -664,7 +665,7 @@ function programarAmpliada(r) {
 
 function mostrarAmpliada(r) {
   clearTimeout(temporizadorAmpliar);
-  if (abierta || leyendo || ampliada === r) return;
+  if (abierta || leyendo || ampliada === r || !$('entrada').hidden) return;
   clearInterval(vigia);
   if (ampliada) {
     ampliada.ampliada.setAttribute('visible', false);
@@ -688,15 +689,18 @@ function vigilarAmpliada() {
   if (!r) return;
   const direccion = new AFRAME.THREE.Vector3();
   vigia = setInterval(() => {
-    escena.camera.getWorldDirection(direccion);
-    const vista = Math.atan2(direccion.x, -direccion.z) * 180 / Math.PI;
+    // Hacia donde apunta el cursor: la cabeza en las gafas, el mouse en el computador.
+    const rc = cursor.components.raycaster;
+    const d = rc ? rc.raycaster.ray.direction : escena.camera.getWorldDirection(direccion);
+    const vista = Math.atan2(d.x, -d.z) * 180 / Math.PI;
     const diferencia = Math.abs(((vista - r.angulo) % 360 + 540) % 360 - 180);
-    if (diferencia > FICHA.anguloMax) ocultarAmpliada();
+    // Sin cancelar la portada vecina que ya se esta mirando: sale a su tiempo.
+    if (diferencia > FICHA.anguloMax) ocultarAmpliada(false);
   }, 250);
 }
 
-function ocultarAmpliada() {
-  clearTimeout(temporizadorAmpliar);
+function ocultarAmpliada(cancelarPendiente = true) {
+  if (cancelarPendiente) clearTimeout(temporizadorAmpliar);
   clearInterval(vigia);
   if (!ampliada) return;
   ampliada.ampliada.setAttribute('visible', false);
@@ -811,7 +815,11 @@ function construirPantalla() {
   video.addEventListener('ended', () => {
     if (!abierta) return;
     mostrarAviso('Fin del video · volviendo a la galería…');
-    temporizadorFin = setTimeout(cerrarVideo, ESPERA_FIN_MS);
+    temporizadorFin = setTimeout(() => {
+      const r = abierta && revistas.find(x => x.revista === abierta.revista);
+      cerrarVideo();
+      if (r) bloquearPortada(r);
+    }, ESPERA_FIN_MS);
   });
   video.addEventListener('error', () => { if (abierta) mostrarAviso('No se pudo cargar el video'); });
 }
@@ -896,6 +904,26 @@ function volverAGaleria() {
     r.resalte.setAttribute('visible', false);
   });
   activar(revistas.map(r => r.portada));
+}
+
+// Al volver sola cuando termina un video, la mirada suele seguir sobre su portada: no se
+// vuelve a abrir el mismo video hasta que la mirada salga de ella.
+let bloqueo = null;
+
+function bloquearPortada(r) {
+  desbloquearPortada(false);
+  activar(revistas.filter(x => x !== r).map(x => x.portada));
+  bloqueo = setInterval(() => {
+    const rc = cursor.components.raycaster;
+    if (abierta || leyendo || !rc || !rc.raycaster.intersectObject(r.portada.object3D, true).length) desbloquearPortada();
+  }, 250);
+}
+
+function desbloquearPortada(reactivar = true) {
+  if (!bloqueo) return;
+  clearInterval(bloqueo);
+  bloqueo = null;
+  if (reactivar && !abierta && !leyendo && !ampliada) activar(revistas.map(x => x.portada));
 }
 
 function ajustarPantalla(medidas) {

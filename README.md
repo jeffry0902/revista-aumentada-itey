@@ -364,7 +364,7 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
   cercano se ve nítido en las gafas, como el lector de la revista.
 - **Borroso al girar la cabeza:** la pantalla del celular deja cada imagen encendida hasta la siguiente y, al mover la
   cabeza, se "arrastra" (las gafas VR dedicadas apagan la imagen entre cuadros; un celular no puede). Menos se nota
-  cuantos más cuadros por segundo: la galería le pide a Chrome lo máximo que permita (A-Frame lo dejaba en 60–72).
+  cuantos más cuadros por segundo, pero en Chrome Android la página no puede elegirlos: los decide el celular.
   En el Samsung: Ajustes → Pantalla → **Fluidez de movimiento → Adaptable** (hasta 120 Hz) y **sin Ahorro de energía**.
   Para medirlo dentro de las gafas: abrir `sala.html?cps` (abajo, en verde, los cuadros por segundo; en rojo si
   bajan de 55, que es cuando más se nota el arrastre).
