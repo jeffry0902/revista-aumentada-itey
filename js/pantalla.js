@@ -13,6 +13,8 @@
 // corrige con la rueda de las lentes) y el «Zoom de pantalla» de Ajustes (cambia la
 // resolucion: hay que dejarlo en «Predeterminado», lo dice la nota de iPhone de la galeria).
 
+const CAMPO_IOS = 30; // grados de vision por ojo en el modo gafas del iPhone
+
 export function esIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad que se presenta como Mac
@@ -42,6 +44,13 @@ export async function ajustarGafasIOS() {
     for (const pantalla of pantallas) {
       // Metodo del reemplazo de A-Frame (cardboard-vr-display): recalcula las medidas
       // de la pantalla y la deformacion de las lentes. bevelMm: borde negro del iPhone.
+      // Imagen de cada ojo mas pequeña y centrada en su lente, como la que hace Chrome en
+      // Android: con el campo de vision original (40°) cada imagen llena media pantalla y
+      // el otro ojo alcanza a ver el borde de la vecina (se ve doble).
+      const visor = pantalla.deviceInfo_ && pantalla.deviceInfo_.viewer;
+      if (visor && typeof pantalla.onViewerChanged_ === 'function') {
+        pantalla.onViewerChanged_({ ...visor, fov: CAMPO_IOS });
+      }
       if (typeof pantalla.onDeviceParamsUpdated_ === 'function') {
         pantalla.onDeviceParamsUpdated_({ xdpi: ppp, ydpi: ppp, bevelMm: 4 });
       }
