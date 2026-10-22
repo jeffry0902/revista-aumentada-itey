@@ -197,7 +197,8 @@ function entrar(conGafas) {
   pedirSensores();
   pedirPantallaEncendida();
   $('entrada').hidden = true;
-  $('boton-salir').hidden = conGafas;
+  // En iPhone no hay barra ni boton del navegador para salir de las gafas: queda el de la pagina.
+  $('boton-salir').hidden = conGafas && !esIOS();
   contarEvento(conGafas ? 'sala-gafas' : 'sala-sin-gafas', conGafas ? 'Sala · con gafas' : 'Sala · sin gafas');
   if (conGafas) {
     // enterVR debe llamarse dentro del toque (pide pantalla completa).
