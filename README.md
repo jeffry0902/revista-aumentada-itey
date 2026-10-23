@@ -5,8 +5,10 @@ El visitante apunta la cámara del celular a la portada de una revista y ve, enc
 en el que los estudiantes explican su artículo. No hay que instalar ninguna app.
 
 - **Dirección pública:** https://jeffry0902.github.io/revista-aumentada-itey/
-- **Feria:** viernes 23 de octubre de 2026, de 8:00 a. m. a 12:00 m.
-- **Revistas:** 2 grupos por curso × 7 cursos (11A, 11C, 11D, 11E, 11F, 11G, 11I) = **14 revistas**.
+- **Feria:** martes 27 de octubre de 2026 (se aplazó; estaba para el viernes 23).
+- **Revistas:** **16 elegidas** por el docente con dos juezas invitadas (23-oct): 2 de 11A y 11C, 3 de 11D y 11E,
+  1 de 11F y 11G, 4 de 11I. Los videos se cargan cuando los equipos los envíen en buena calidad; mientras tanto
+  la cámara, la galería y la página del video dicen "disponible muy pronto".
 - **Tecnología:** página estática en GitHub Pages, MindAR 1.2.5 + A-Frame 1.5.0 desde CDN. No tiene servidor propio ni base de datos.
 
 ---
@@ -16,7 +18,7 @@ en el que los estudiantes explican su artículo. No hay que instalar ninguna app
 | Página | Para qué |
 |---|---|
 | `index.html` | Inicio: instrucciones, botón **Abrir cámara** y lista de revistas agrupadas por curso. |
-| `ar.html?camara=11` | La cámara con realidad aumentada. **Una sola cámara reconoce las 14 revistas.** Reproduce el video encima de la portada; botón **Ver video** para verlo en grande y **Leer revista** si la revista tiene páginas. Botón **Modo gafas** para usarla con las gafas VR. |
+| `ar.html?camara=11` | La cámara con realidad aumentada. **Una sola cámara reconoce las 16 revistas.** Reproduce el video encima de la portada; botón **Ver video** para verlo en grande y **Leer revista** si la revista tiene páginas. Botón **Modo gafas** para usarla con las gafas VR. |
 | `ver.html?id=11A-01` | Solo el video de una revista. **A esta página llevan los QR impresos en las revistas** (plan B sin cámara AR). |
 | `herramientas/compilar.html` | Para el docente: genera el archivo de reconocimiento de las portadas. |
 | `herramientas/qr.html` | Para el docente: genera e imprime los QR. |
@@ -61,7 +63,7 @@ revista-aumentada-itey/
 
 Los nombres son fijos: siempre `portada.jpg` y `video.mp4`. Así nunca se confunde la portada de un video con la de otro.
 
-## Una sola cámara para las 14 revistas
+## Una sola cámara para todas las revistas
 
 MindAR guarda todas las portadas de una cámara en un solo archivo (`targets/11.mind`). Mientras no reconoce
 ninguna, compara cada imagen de la cámara **contra esas portadas una por una**. Con 14 es manejable:
@@ -292,8 +294,8 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 ## 10. Lista de chequeo para el día de la feria
 
 **El día anterior (22 de octubre)**
-- [ ] Las 14 revistas en `revistas.json`, cada una con su carpeta, compiladas y publicadas.
-- [ ] Abrir la cámara y reconocer **cada una de las 14 portadas impresas** (no en pantalla).
+- [ ] Las 16 revistas en `revistas.json`, cada una con su carpeta, compiladas y publicadas.
+- [ ] Abrir la cámara y reconocer **cada una de las 16 portadas impresas** (no en pantalla).
 - [ ] Probar en **3 celulares distintos**: un Android de gama media, un Android económico y un iPhone.
       Con datos móviles y con el wifi del colegio.
 - [ ] Escanear todos los QR impresos con la cámara normal del celular (sin app lectora).
@@ -328,7 +330,7 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 | Hasta el 16 de octubre | Prototipo funcionando con 2 revistas de prueba ✔ publicado y probado en Android y iPhone. |
 | 19 al 21 de octubre | Recibir las carpetas de los 14 equipos (paso 1), crear sus carpetas y comprimir videos (pasos 3–4), compilar (paso 5), QR (paso 6), publicar (paso 8). |
 | 22 de octubre | Pruebas finales en celulares (lista de chequeo). |
-| 23 de octubre | Feria, 8:00 a. m. – 12:00 m. |
+| 27 de octubre | Feria (aplazada desde el 23). |
 
 ## Galería virtual con gafas (`sala.html`)
 
@@ -402,7 +404,8 @@ En la galería, la cartela del cuadro dice "revista de N páginas" y junto al vi
   cabeza**; ahí las flechas pasan de a una página y **«Alejar»** vuelve a la doble página.
 - Las **flechas amarillas** pasan la página (o la doble página). **«Ver video»** salta al video del equipo.
 
-Las dos revistas de ejemplo ya tienen sus páginas (escaneadas): `ejemplo` (12 páginas) y `ejemplo-moda` (16).
+Las dos revistas de ejemplo tenían sus páginas (escaneadas); se quitaron de la galería el 23-oct, al cargar las 16 elegidas,
+y siguen en el historial de git (commit `697a849`). Las 16 elegidas todavía no tienen páginas.
 
 Peso: unas 200–450 KB por página en calidad normal; una revista de 12 páginas ≈ 3,5 MB. Si es muy larga, usa la calidad «Liviana».
 

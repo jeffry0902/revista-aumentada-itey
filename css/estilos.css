@@ -170,6 +170,15 @@ img { max-width: 100%; }
 .rejilla-cursos .boton { border-radius: 12px; font-size: 1.2rem; min-height: 64px; }
 .dialogo__cerrar { margin-top: 16px; width: 100%; }
 
+.aviso-pendiente {
+  padding: 16px;
+  border-radius: var(--radio);
+  background: var(--azul-50);
+  border: 1px solid var(--azul-100);
+  color: var(--azul-900);
+  font-weight: 600;
+}
+
 .aviso-error {
   padding: 14px 16px;
   border-radius: var(--radio);

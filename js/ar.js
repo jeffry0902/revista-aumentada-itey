@@ -9,7 +9,7 @@
 // aparece un boton 3D «Leer revista» que se elige mirandolo 2 segundos, y las
 // paginas se ven encima de la portada impresa, con flechas para pasarlas.
 
-import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTargets, esc } from './datos.js';
+import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTargets, videoPendiente, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
 import { abrirLector } from './lector.js';
 import { prepararGafas, entrarGafas, gafasActivas, textoGafas, pastilla } from './ar-gafas.js';
@@ -42,6 +42,7 @@ let actual = -1;         // revista cargada en el reproductor
 let visible = -1;        // revista que la camara esta viendo (-1 = ninguna)
 let sonido = false;      // el visitante ya toco la pantalla
 let pausaPendiente = null;
+const sinVideo = new Set(); // revistas cuyo video todavía no se ha subido
 
 // MindAR pide la camara sin decir resolucion: muchos celulares le dan 640x480, que
 // dentro de las gafas se ve borroso. En el modo gafas se pide 1280x720 con enfoque
@@ -328,6 +329,16 @@ function cargarVideo(i) {
 // El plano se muestra cuando ya hay imagen, para no dejar ver el ultimo cuadro
 // del video anterior ni un rectangulo negro mientras carga.
 videoAR.addEventListener('loadedmetadata', () => ajustarPlano(actual));
+// Video que todavía no se ha subido: la tarjeta (y el modo gafas) lo dicen en vez de una pantalla negra.
+videoAR.addEventListener('error', async () => {
+  const i = actual;
+  if (i === -1 || !(await videoPendiente(camara.revistas[i].video))) return;
+  sinVideo.add(i);
+  if (actual === i) {
+    pintarTarjeta(i);
+    pintarGafas();
+  }
+});
 videoAR.addEventListener('playing', () => {
   if (actual !== -1 && !lectura) planos[actual].setAttribute('visible', 'true');
 });
@@ -383,7 +394,7 @@ function activarSonido() {
 document.addEventListener('click', activarSonido);
 
 function pintarBotonSonido() {
-  $('boton-sonido').hidden = sonido && !videoAR.muted;
+  $('boton-sonido').hidden = (sonido && !videoAR.muted) || sinVideo.has(actual);
 }
 
 // ---------- Video en grande (respaldo si el anclaje falla) ----------
@@ -487,6 +498,7 @@ function pintarGafas() {
   if (reiniciando) textoGafas('Ajustando la cámara…');
   else if (visible === -1) textoGafas('Mira la portada de una revista');
   else if (lectura) textoGafas(`Página ${lectura.pagina} de ${camara.revistas[lectura.i].paginas}`);
+  else if (sinVideo.has(visible) && !camara.revistas[visible].paginas) textoGafas('Video disponible muy pronto');
   else if (camara.revistas[visible].paginas) textoGafas('Mira «Leer revista» 2 segundos');
   else textoGafas('');
 }
@@ -628,6 +640,8 @@ function pintarTarjeta(i) {
   $('tarjeta-curso').textContent = revista.curso;
   $('tarjeta-titulo').textContent = revista.titulo;
   $('tarjeta-equipo').textContent = revista.equipo;
+  $('tarjeta-pendiente').hidden = !sinVideo.has(i);
+  $('boton-ver').hidden = sinVideo.has(i);
   $('boton-leer').hidden = !revista.paginas;
   $('tarjeta-ar').hidden = false;
   pintarBotonSonido();

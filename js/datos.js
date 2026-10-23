@@ -111,6 +111,15 @@ export function revistasPorCurso(datos) {
     .map(([curso, revistas]) => ({ curso, revistas }));
 }
 
+// Un video que todavía no se ha subido da 404: se avisa "muy pronto" en vez de un error.
+export async function videoPendiente(url) {
+  try {
+    return (await fetch(url, { method: 'HEAD', cache: 'no-store' })).status === 404;
+  } catch {
+    return false; // sin conexión: eso sí es un error
+  }
+}
+
 export function rutaTargets(camaraId) {
   return `targets/${camaraId}.mind`;
 }

@@ -2,7 +2,7 @@
 // Es el destino de los QR impresos (plan B cuando la camara no funciona).
 // Desde la lista de inicio llega con &desde=lista, para contar aparte los QR.
 
-import { cargarDatos, buscarRevista, esc } from './datos.js';
+import { cargarDatos, buscarRevista, videoPendiente, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
 import { abrirLector } from './lector.js';
 
@@ -57,10 +57,15 @@ function mostrar(camara, revista) {
   }
   boton.addEventListener('click', () => video.play());
   video.addEventListener('play', () => { boton.hidden = true; });
-  video.addEventListener('error', () => {
+  video.addEventListener('error', async () => {
     boton.hidden = true;
-    video.insertAdjacentHTML('afterend',
-      '<p class="aviso-error">No se pudo cargar el video. Revisa la conexión e inténtalo de nuevo.</p>');
+    if (await videoPendiente(revista.video)) {
+      video.closest('.video-marco').outerHTML =
+        '<p class="aviso-pendiente">El video de esta revista estará disponible muy pronto.</p>';
+    } else {
+      video.insertAdjacentHTML('afterend',
+        '<p class="aviso-error">No se pudo cargar el video. Revisa la conexión e inténtalo de nuevo.</p>');
+    }
   });
   // Si el navegador deja reproducir con sonido sin tocar, arranca solo.
   video.play().catch(() => {});

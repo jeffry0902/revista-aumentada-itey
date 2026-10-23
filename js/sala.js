@@ -12,7 +12,7 @@
 // No tiene configuracion propia: usa las mismas carpetas revistas/<id>/ que la
 // camara, asi que cada revista nueva aparece sola en la galeria.
 
-import { cargarDatos, revistasPorCurso } from './datos.js';
+import { cargarDatos, revistasPorCurso, videoPendiente } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
 import { esIOS, ajustarGafasIOS } from './pantalla.js';
 
@@ -822,7 +822,12 @@ function construirPantalla() {
       if (r) bloquearPortada(r);
     }, ESPERA_FIN_MS);
   });
-  video.addEventListener('error', () => { if (abierta) mostrarAviso('No se pudo cargar el video'); });
+  video.addEventListener('error', async () => {
+    if (!abierta) return;
+    const revista = abierta.revista;
+    const pendiente = await videoPendiente(revista.video);
+    if (abierta && abierta.revista === revista) mostrarAviso(pendiente ? 'Video disponible muy pronto' : 'No se pudo cargar el video');
+  });
 }
 
 function prepararBoton(b, ancho) {

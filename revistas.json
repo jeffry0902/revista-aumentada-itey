@@ -10,28 +10,98 @@
         {
           "id": "11A-01",
           "curso": "11A",
-          "equipo": "Equipo de prueba 1",
-          "titulo": "El movimiento: tiro parabólico en la cancha del colegio"
+          "equipo": "Las voces del río",
+          "titulo": "El último mensaje del río"
         },
         {
           "id": "11A-02",
           "curso": "11A",
-          "equipo": "Equipo de prueba 2",
-          "titulo": "Ondas y sonido: ¿cómo viaja la voz por el aire?"
+          "equipo": "Mona y pecas al rescate canino",
+          "titulo": "Huellas que duelen"
         },
         {
-          "id": "ejemplo",
-          "curso": "Ejemplo",
-          "equipo": "Revista de 11H (2024)",
-          "titulo": "Económico, ¿a qué costo? El impacto oculto de las aplicaciones de consumo masivo",
-          "paginas": 12
+          "id": "11C-01",
+          "curso": "11C",
+          "equipo": "La nueva generación",
+          "titulo": "Efectos de las redes sociales"
         },
         {
-          "id": "ejemplo-moda",
-          "curso": "Ejemplo",
-          "equipo": "Revista de 11° (2024)",
-          "titulo": "Influencia del marketing en la moda",
-          "paginas": 16
+          "id": "11C-02",
+          "curso": "11C",
+          "equipo": "ControlClic",
+          "titulo": "¿Quién manda a quién?"
+        },
+        {
+          "id": "11D-01",
+          "curso": "11D",
+          "equipo": "Los extraditables",
+          "titulo": "La dependienta"
+        },
+        {
+          "id": "11D-02",
+          "curso": "11D",
+          "equipo": "Box Store",
+          "titulo": "Focus"
+        },
+        {
+          "id": "11D-03",
+          "curso": "11D",
+          "equipo": "Los tardíos",
+          "titulo": "Los pobres quieren comer y los ricos no tienen hambre"
+        },
+        {
+          "id": "11E-01",
+          "curso": "11E",
+          "equipo": "Consumismo digital",
+          "titulo": "¿Realmente lo necesitas?"
+        },
+        {
+          "id": "11E-02",
+          "curso": "11E",
+          "equipo": "Guardianes de la voz",
+          "titulo": "Voces sin voz"
+        },
+        {
+          "id": "11E-03",
+          "curso": "11E",
+          "equipo": "Uso del tiempo libre",
+          "titulo": "¿Vives tu vida o haces scroll?"
+        },
+        {
+          "id": "11F-01",
+          "curso": "11F",
+          "equipo": "Raíces del llano",
+          "titulo": "El llano, sus pros y contras"
+        },
+        {
+          "id": "11G-01",
+          "curso": "11G",
+          "equipo": "Tristes tigres",
+          "titulo": "Vaught"
+        },
+        {
+          "id": "11I-01",
+          "curso": "11I",
+          "equipo": "Nova",
+          "titulo": "Lo que el diseño no ve"
+        },
+        {
+          "id": "11I-02",
+          "curso": "11I",
+          "equipo": "Las flores de la tierra",
+          "titulo": "Entre rutas y morichales"
+        },
+        {
+          "id": "11I-03",
+          "curso": "11I",
+          "equipo": "Mirada crítica",
+          "titulo": "La cultura del egoísmo"
+        },
+        {
+          "id": "11I-04",
+          "curso": "11I",
+          "equipo": "Los del estilo",
+          "titulo": "¿Eliges la moda o la moda te elige a ti?"
         }
       ]
     }
