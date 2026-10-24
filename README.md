@@ -361,6 +361,13 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
   - Rueda de **distancia entre lentes**: ponerla cerca del mínimo (unos 60 mm). Rueda de **enfoque**: hasta ver nítidas
     las letras de las cartelas.
   - Los celulares de las gafas son del stand: con giroscopio, brillo y volumen al máximo, cargados y con batería externa.
+- **Curvatura de las lentes (Android):** en la galería, la deformación de lente la pone **Chrome** según el
+  *perfil del visor*; sin perfil usa "Cardboard v1" (curvatura 0,441 y 0,156), que con las gafas Shinecon se ve
+  "barrigona". En `E:\OneDrive\Revista aumentada\gafas\` hay tres QR de perfil, iguales a Cardboard v1 salvo la
+  curvatura: **1 - suave** (0,33 y 0,12), **2 - más suave** (0,24 y 0,09) y **3 - original** (para volver atrás).
+  Se escanean una vez por celular desde el **engranaje** del modo gafas de Chrome. Los genera
+  `.claude/herramientas/perfil_visor.py`. La cámara AR no depende de esto: su curvatura la dibuja la página
+  (`LENTE` en `js/ar-gafas.js`).
 - **Nitidez:** en modo gafas se pide a Chrome la resolución completa de la pantalla (antes dibujaba a una resolución
   menor y se veía más borroso dentro de las gafas que fuera). La portada ampliada y la ficha están cerca porque lo
   cercano se ve nítido en las gafas, como el lector de la revista.
