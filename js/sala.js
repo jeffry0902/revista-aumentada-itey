@@ -36,9 +36,8 @@ const PASPARTU = 0.06;      // borde blanco entre el marco y la portada
 const DIST_PANTALLA = 2.2;  // distancia de la pantalla del video
 const PANTALLA_MAX = { ancho: 2.8, alto: 1.5 };
 const DIST_LECTOR = 1.8;    // distancia de las paginas
-const ALTO_PAGINA = 1.4;    // a doble pagina. NO agrandar: a 1,8 m de distancia la doble pagina ya ocupa ~58° y
-                            // la ventana de cada ojo en las gafas es de ~60°; con 1.6 o 1.8 se sale y se ve doble
-                            // (probado por Jeffry con las gafas el 23-oct). Para leer en grande esta «Acercar».
+const ALTO_PAGINA = 1.8;    // a doble pagina. Probado por Jeffry con las gafas (S25 Ultra, 23-oct): 1.8 se ve
+                            // nitido (algo encima); 1.4 se veia pequeña; con 1.6 se vio doble (causa sin confirmar).
 const ALTO_PAGINA_CERCA = 2.3; // una pagina acercada para leerla moviendo la cabeza
 const ESPERA_FIN_MS = 6000; // al terminar el video, vuelve sola a la galeria
 const ESCALA_GAFAS = 2;     // resolucion pedida en modo gafas (WebXR), ver entrar()
