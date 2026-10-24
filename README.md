@@ -405,7 +405,10 @@ En la galería, la cartela del cuadro dice "revista de N páginas" y junto al vi
 - Las **flechas amarillas** pasan la página (o la doble página). **«Ver video»** salta al video del equipo.
 
 Las dos revistas de ejemplo tenían sus páginas (escaneadas); se quitaron de la galería el 23-oct, al cargar las 16 elegidas,
-y siguen en el historial de git (commit `697a849`). Las 16 elegidas todavía no tienen páginas.
+y siguen en el historial de git (commit `697a849`). Las 16 elegidas tienen sus páginas desde el 23-oct, sacadas de sus
+PDF para imprimir (la página 1 es la portada final, con su QR). En la galería, la doble página mide 1,8 m de alto
+(antes 1,4 m) y «Acercar» sigue en 2,3 m. Se publican con los créditos tal cual: el docente tiene autorización
+escrita de los padres para el manejo de datos.
 
 Peso: unas 200–450 KB por página en calidad normal; una revista de 12 páginas ≈ 3,5 MB. Si es muy larga, usa la calidad «Liviana».
 

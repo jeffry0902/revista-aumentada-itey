@@ -11,97 +11,113 @@
           "id": "11A-01",
           "curso": "11A",
           "equipo": "Las voces del río",
-          "titulo": "El último mensaje del río"
+          "titulo": "El último mensaje del río",
+          "paginas": 6
         },
         {
           "id": "11A-02",
           "curso": "11A",
           "equipo": "Mona y pecas al rescate canino",
-          "titulo": "Huellas que duelen"
+          "titulo": "Huellas que duelen",
+          "paginas": 10
         },
         {
           "id": "11C-01",
           "curso": "11C",
           "equipo": "La nueva generación",
-          "titulo": "Efectos de las redes sociales"
+          "titulo": "Efectos de las redes sociales",
+          "paginas": 10
         },
         {
           "id": "11C-02",
           "curso": "11C",
           "equipo": "ControlClic",
-          "titulo": "¿Quién manda a quién?"
+          "titulo": "¿Quién manda a quién?",
+          "paginas": 9
         },
         {
           "id": "11D-01",
           "curso": "11D",
           "equipo": "Los extraditables",
-          "titulo": "La dependienta"
+          "titulo": "La dependienta",
+          "paginas": 6
         },
         {
           "id": "11D-02",
           "curso": "11D",
           "equipo": "Box Store",
-          "titulo": "Focus"
+          "titulo": "Focus",
+          "paginas": 5
         },
         {
           "id": "11D-03",
           "curso": "11D",
           "equipo": "Los tardíos",
-          "titulo": "Los pobres quieren comer y los ricos no tienen hambre"
+          "titulo": "Los pobres quieren comer y los ricos no tienen hambre",
+          "paginas": 6
         },
         {
           "id": "11E-01",
           "curso": "11E",
           "equipo": "Consumismo digital",
-          "titulo": "¿Realmente lo necesitas?"
+          "titulo": "¿Realmente lo necesitas?",
+          "paginas": 12
         },
         {
           "id": "11E-02",
           "curso": "11E",
           "equipo": "Guardianes de la voz",
-          "titulo": "Voces sin voz"
+          "titulo": "Voces sin voz",
+          "paginas": 7
         },
         {
           "id": "11E-03",
           "curso": "11E",
           "equipo": "Uso del tiempo libre",
-          "titulo": "¿Vives tu vida o haces scroll?"
+          "titulo": "¿Vives tu vida o haces scroll?",
+          "paginas": 8
         },
         {
           "id": "11F-01",
           "curso": "11F",
           "equipo": "Raíces del llano",
-          "titulo": "El llano, sus pros y contras"
+          "titulo": "El llano, sus pros y contras",
+          "paginas": 13
         },
         {
           "id": "11G-01",
           "curso": "11G",
           "equipo": "Tristes tigres",
-          "titulo": "Vaught"
+          "titulo": "Vaught",
+          "paginas": 8
         },
         {
           "id": "11I-01",
           "curso": "11I",
           "equipo": "Nova",
-          "titulo": "Lo que el diseño no ve"
+          "titulo": "Lo que el diseño no ve",
+          "paginas": 9
         },
         {
           "id": "11I-02",
           "curso": "11I",
           "equipo": "Las flores de la tierra",
-          "titulo": "Entre rutas y morichales"
+          "titulo": "Entre rutas y morichales",
+          "paginas": 15
         },
         {
           "id": "11I-03",
           "curso": "11I",
           "equipo": "Mirada crítica",
-          "titulo": "La cultura del egoísmo"
+          "titulo": "La cultura del egoísmo",
+          "paginas": 6
         },
         {
           "id": "11I-04",
           "curso": "11I",
           "equipo": "Los del estilo",
-          "titulo": "¿Eliges la moda o la moda te elige a ti?"
+          "titulo": "¿Eliges la moda o la moda te elige a ti?",
+          "paginas": 6
         }
       ]
     }
