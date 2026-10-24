@@ -44,7 +44,13 @@ const MIRADA_PORTADA_MS = 5400;  // mirar fijo la portada ampliada para abrir su
                                  // para alcanzar a leerla antes (pedido de Jeffry, 23-oct)
 const ALTO_PAGINA_CERCA = 2.3; // una pagina acercada para leerla moviendo la cabeza
 const ESPERA_FIN_MS = 6000; // al terminar el video, vuelve sola a la galeria
-const ESCALA_GAFAS = 2;     // resolucion pedida en modo gafas (WebXR), ver entrar()
+// Resolucion pedida en modo gafas (WebXR), ver entrar(): 2 = la de la pantalla (Chrome no deja
+// pasar de ahi); 1 = la de Chrome por defecto (~70 %). Para probar otra sin cambiarla a todos:
+// sala.html?cps&escala=1.2 (menos resolucion: menos nitidez, pero mas cuadros por segundo).
+const ESCALA_GAFAS = (() => {
+  const pedida = Number(new URLSearchParams(location.search).get('escala'));
+  return pedida >= 0.5 && pedida <= 2 ? pedida : 2;
+})();
 
 const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '#ffffff' };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
@@ -99,9 +105,12 @@ AFRAME.registerComponent('medidor-cps', {
     ctx.clearRect(0, 0, 420, 120);
     redondeado(ctx, 0, 0, 420, 120, 30, 'rgba(0,0,0,0.7)');
     ctx.fillStyle = cps >= 55 ? '#4ade80' : '#f87171';
-    ctx.font = `800 52px ${FUENTE}`;
+    ctx.font = `800 46px ${FUENTE}`;
     ctx.textAlign = 'center';
-    ctx.fillText(`${cps} cps${pantalla}`, 210, 80, 400);
+    ctx.fillText(`${cps} cps${pantalla}`, 210, 58, 400);
+    ctx.fillStyle = '#e5e7eb';
+    ctx.font = `600 28px ${FUENTE}`;
+    ctx.fillText(`resolución ${ESCALA_GAFAS}`, 210, 100, 400);
     this.textura.needsUpdate = true;
     this.cuadros = 0;
     this.desde = ahora;
