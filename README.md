@@ -338,10 +338,10 @@ Para el stand con gafas de realidad virtual tipo VR Box (el celular va adentro):
 el visitante queda en el centro de una **galería de arte**: paredes claras con zócalo azul y filete amarillo,
 piso de madera, techo con claraboya y un riel de luces. **Cada portada es un cuadro enmarcado** con su luz y una
 cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucción** ("Mira fijo una portada
-2 segundos y se reproduce tu video") y un letrero colgado del techo con el nombre de la feria.
+6 segundos y se reproduce tu video") y un letrero colgado del techo con el nombre de la feria.
 
 - **Mirar un cuadro** medio segundo: su **portada sale de la pared**, grande y con borde amarillo, a 1,7 m, con su
-  **ficha** (curso, equipo y título) debajo y la galería en penumbra suave. **Seguir mirando la portada 2 segundos**
+  **ficha** (curso, equipo y título) debajo y la galería en penumbra suave. **Seguir mirando la portada unos 6 segundos** (tiempo para leerla; `MIRADA_PORTADA_MS` = 5,4 s después de que sale)
   abre su video en una pantalla gigante (modo cine). Al girar la cabeza hacia otro lado, la portada vuelve a la pared.
   Mirar **«Volver»** 2 segundos regresa. Al terminar un video, la galería vuelve sola a los 6 segundos.
 - Si la revista tiene sus páginas, junto al video aparece **«Leer revista»** (ver abajo).

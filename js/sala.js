@@ -2,9 +2,10 @@
 //
 // El visitante se pone las gafas (celular acostado dentro) y queda en el centro
 // de una galeria de arte: cada portada de revistas.json es un cuadro colgado en
-// la pared, con su luz y su cartela. Mirar fijo un cuadro 2 segundos abre su
-// video en una pantalla gigante (la galeria queda en penumbra); mirar «Volver»
-// 2 segundos regresa. Si la revista trae sus paginas, «Leer revista» la abre a
+// la pared, con su luz y su cartela. Mirar un cuadro saca su portada de la pared y
+// seguir mirandola ~6 segundos (tiempo para leerla) abre su video en una pantalla
+// gigante (la galeria queda en penumbra); mirar «Volver» 2 segundos regresa.
+// Si la revista trae sus paginas, «Leer revista» la abre a
 // doble pagina: mirar una pagina la acerca y las flechas la hojean.
 // Sin gafas funciona igual moviendo el celular (o arrastrando con el mouse y
 // haciendo clic en el computador).
@@ -38,6 +39,9 @@ const PANTALLA_MAX = { ancho: 2.8, alto: 1.5 };
 const DIST_LECTOR = 1.8;    // distancia de las paginas
 const ALTO_PAGINA = 1.6;    // a doble pagina. Elegido por Jeffry con las gafas (23-oct): 1.4 se veia pequeña y 1.8
                             // quedaba encima. (Un «se ve doble» resulto ser el celular torcido dentro del visor.)
+const MIRADA_MS = 1800;          // mirar fijo un boton para elegirlo (fuseTimeout del cursor)
+const MIRADA_PORTADA_MS = 5400;  // mirar fijo la portada ampliada para abrir su video: el triple,
+                                 // para alcanzar a leerla antes (pedido de Jeffry, 23-oct)
 const ALTO_PAGINA_CERCA = 2.3; // una pagina acercada para leerla moviendo la cabeza
 const ESPERA_FIN_MS = 6000; // al terminar el video, vuelve sola a la galeria
 const ESCALA_GAFAS = 2;     // resolucion pedida en modo gafas (WebXR), ver entrar()
@@ -516,7 +520,7 @@ function dibujarInstruccion(ctx) {
   ctx.fillStyle = COLOR.azul;
   ctx.font = `900 74px ${FUENTE}`;
   ctx.fillText('Mira fijo una portada', 500, 330, 940);
-  ctx.fillText('2 segundos', 500, 415, 940);
+  ctx.fillText('6 segundos', 500, 415, 940);
   ctx.fillStyle = COLOR.rojo;
   ctx.font = `800 60px ${FUENTE}`;
   ctx.fillText('y se reproduce tu video', 500, 500, 940);
@@ -620,7 +624,7 @@ let temporizadorAmpliar = null;
 
 // Por cada revista, ya armadas y en su sitio (al mirar un cuadro solo se muestran):
 // - la portada ampliada, entre el visitante y el cuadro, a la altura de los ojos, con borde
-//   amarillo; mirarla 2 segundos abre el video;
+//   amarillo; mirarla 5,4 segundos (MIRADA_PORTADA_MS) abre el video;
 // - la ficha (curso, equipo y titulo), debajo de la portada ampliada, inclinada hacia los ojos.
 function construirAmpliadas() {
   const inclinacion = Math.atan2(1.6 - FICHA.y, FICHA.distancia) * 180 / Math.PI;
@@ -638,14 +642,17 @@ function construirAmpliadas() {
     });
     r.ampliada.appendChild(crear('a-plane', {
       width: AMPLIADA.ancho + 2 * borde, height: alto + 2 * borde,
-      material: `shader: flat; color: ${COLOR.amarillo}`,
+      material: `shader: flat; transparent: true; color: ${COLOR.amarillo}`,
     }));
     r.ampliadaImagen = crear('a-image', {
-      src: r.revista.objetivo, width: AMPLIADA.ancho, height: alto, position: '0 0 0.005', material: 'shader: flat',
+      src: r.revista.objetivo, width: AMPLIADA.ancho, height: alto, position: '0 0 0.005', material: 'shader: flat; transparent: true',
     });
     r.ampliadaImagen.addEventListener('click', () => abrirVideo(r.revista, r.angulo));
     r.ampliadaImagen.addEventListener('mouseleave', vigilarAmpliada);
     r.ampliada.appendChild(r.ampliadaImagen);
+    // Por encima de la penumbra, como la pantalla y el lector: la parte de arriba de la portada
+    // queda fuera de la esfera de la penumbra y se veia con sombra.
+    ordenRender(r.ampliada, 2);
 
     r.ficha = crear('a-image', {
       src: lienzoFicha(r.revista), visible: false, width: FICHA.ancho, height: FICHA.alto,
@@ -743,7 +750,7 @@ async function construirTitulo(evento) {
     ctx.fillText(`Galería virtual · ${evento} · ITEY`, 384, 290, 1380);
     ctx.fillStyle = '#c7d2fe';
     ctx.font = `500 46px ${FUENTE}`;
-    ctx.fillText('Mira fijo una portada 2 segundos para ver tu video', 384, 360, 1380);
+    ctx.fillText('Mira fijo una portada 6 segundos para ver tu video', 384, 360, 1380);
   });
   // Letrero colgado del techo, delante de las paredes del frente.
   const y = 3.08, ancho = 2.4, alto = ancho * 420 / 1800;
@@ -771,6 +778,16 @@ function activar(elementos) {
   elementos.forEach(el => el.classList.add('seleccionable'));
   const rc = cursor.components.raycaster;
   if (rc) rc.refreshObjects();
+  // Con una portada ampliada a la vista, la mirada tarda mas: da tiempo de leerla.
+  const conPortada = elementos.some(el => revistas.some(r => r.ampliadaImagen === el));
+  tiempoMirada(conPortada ? MIRADA_PORTADA_MS : MIRADA_MS);
+}
+
+// Tiempo que hay que mirar algo para elegirlo, y el anillo amarillo que se cierra al mismo ritmo.
+function tiempoMirada(ms) {
+  if (Number(cursor.getAttribute('cursor').fuseTimeout) === ms) return;
+  cursor.setAttribute('cursor', 'fuseTimeout', ms);
+  cursor.setAttribute('animation__mirando', 'dur', ms);
 }
 
 // Modo cine: la galeria queda en penumbra detras de la pantalla o del lector.
@@ -1153,7 +1170,7 @@ function lienzoCartela(revista) {
     // Pie: que se puede hacer con este cuadro.
     ctx.fillStyle = '#374151';
     const extra = revista.video360 ? 'video 360°' : 'video';
-    const pie = revista.paginas ? `Mira fijo: ${extra} · revista de ${revista.paginas} pág.` : `Mira fijo 2 segundos: ${extra}`;
+    const pie = revista.paginas ? `Mira fijo: ${extra} · revista de ${revista.paginas} pág.` : `Mira fijo 6 segundos: ${extra}`;
     ctx.beginPath();
     ctx.moveTo(56, 326); ctx.lineTo(56, 368); ctx.lineTo(92, 347); ctx.closePath();
     ctx.fill();
@@ -1176,7 +1193,7 @@ function lienzoFicha(revista) {
     ctx.fillStyle = '#374151';
     const extra = revista.video360 ? 'video 360°' : 'video';
     escribirLinea(ctx, revista.paginas ? `Mira fijo la portada: ${extra} · revista de ${revista.paginas} pág.`
-      : `Mira fijo la portada 2 segundos: ${extra}`, 550, 350, 1040, [46, 40, 36]);
+      : `Mira fijo la portada 6 segundos: ${extra}`, 550, 350, 1040, [46, 40, 36]);
   });
 }
 
