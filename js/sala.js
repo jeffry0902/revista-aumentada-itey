@@ -518,7 +518,7 @@ function dibujarInstruccion(ctx) {
   ctx.fillText('2 segundos', 500, 415, 940);
   ctx.fillStyle = COLOR.rojo;
   ctx.font = `800 60px ${FUENTE}`;
-  ctx.fillText('y se reproduce su video', 500, 500, 940);
+  ctx.fillText('y se reproduce tu video', 500, 500, 940);
   ctx.fillStyle = '#4b5563';
   ctx.font = `600 44px ${FUENTE}`;
   ctx.fillText('Gira la cabeza para recorrer la galería', 500, 585, 940);
@@ -742,7 +742,7 @@ async function construirTitulo(evento) {
     ctx.fillText(`Galería virtual · ${evento} · ITEY`, 384, 290, 1380);
     ctx.fillStyle = '#c7d2fe';
     ctx.font = `500 46px ${FUENTE}`;
-    ctx.fillText('Mira fijo una portada 2 segundos para ver su video', 384, 360, 1380);
+    ctx.fillText('Mira fijo una portada 2 segundos para ver tu video', 384, 360, 1380);
   });
   // Letrero colgado del techo, delante de las paredes del frente.
   const y = 3.08, ancho = 2.4, alto = ancho * 420 / 1800;

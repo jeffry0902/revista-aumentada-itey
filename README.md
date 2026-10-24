@@ -338,7 +338,7 @@ Para el stand con gafas de realidad virtual tipo VR Box (el celular va adentro):
 el visitante queda en el centro de una **galería de arte**: paredes claras con zócalo azul y filete amarillo,
 piso de madera, techo con claraboya y un riel de luces. **Cada portada es un cuadro enmarcado** con su luz y una
 cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucción** ("Mira fijo una portada
-2 segundos y se reproduce su video") y un letrero colgado del techo con el nombre de la feria.
+2 segundos y se reproduce tu video") y un letrero colgado del techo con el nombre de la feria.
 
 - **Mirar un cuadro** medio segundo: su **portada sale de la pared**, grande y con borde amarillo, a 1,7 m, con su
   **ficha** (curso, equipo y título) debajo y la galería en penumbra suave. **Seguir mirando la portada 2 segundos**
