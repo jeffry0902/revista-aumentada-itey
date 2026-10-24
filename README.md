@@ -406,8 +406,9 @@ En la galería, la cartela del cuadro dice "revista de N páginas" y junto al vi
 
 Las dos revistas de ejemplo tenían sus páginas (escaneadas); se quitaron de la galería el 23-oct, al cargar las 16 elegidas,
 y siguen en el historial de git (commit `697a849`). Las 16 elegidas tienen sus páginas desde el 23-oct, sacadas de sus
-PDF para imprimir (la página 1 es la portada final, con su QR). En la galería, la doble página mide 1,8 m de alto
-(antes 1,4 m). Probado con las gafas el 23-oct: a 1,8 m se ve nítida; a 1,6 m se vio doble (causa sin confirmar) y «Acercar» sigue en 2,3 m. Se publican con los créditos tal cual: el docente tiene autorización
+PDF para imprimir (la página 1 es la portada final, con su QR). En la galería, la doble página mide 1,6 m de alto
+(antes 1,4 m; elegido con las gafas el 23-oct: 1,8 m quedaba encima). Si se ve doble, revisar que el celular
+esté derecho dentro del visor y «Acercar» sigue en 2,3 m. Se publican con los créditos tal cual: el docente tiene autorización
 escrita de los padres para el manejo de datos.
 
 Peso: unas 200–450 KB por página en calidad normal; una revista de 12 páginas ≈ 3,5 MB. Si es muy larga, usa la calidad «Liviana».

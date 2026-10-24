@@ -36,8 +36,8 @@ const PASPARTU = 0.06;      // borde blanco entre el marco y la portada
 const DIST_PANTALLA = 2.2;  // distancia de la pantalla del video
 const PANTALLA_MAX = { ancho: 2.8, alto: 1.5 };
 const DIST_LECTOR = 1.8;    // distancia de las paginas
-const ALTO_PAGINA = 1.8;    // a doble pagina. Probado por Jeffry con las gafas (S25 Ultra, 23-oct): 1.8 se ve
-                            // nitido (algo encima); 1.4 se veia pequeña; con 1.6 se vio doble (causa sin confirmar).
+const ALTO_PAGINA = 1.6;    // a doble pagina. Elegido por Jeffry con las gafas (23-oct): 1.4 se veia pequeña y 1.8
+                            // quedaba encima. (Un «se ve doble» resulto ser el celular torcido dentro del visor.)
 const ALTO_PAGINA_CERCA = 2.3; // una pagina acercada para leerla moviendo la cabeza
 const ESPERA_FIN_MS = 6000; // al terminar el video, vuelve sola a la galeria
 const ESCALA_GAFAS = 2;     // resolucion pedida en modo gafas (WebXR), ver entrar()
