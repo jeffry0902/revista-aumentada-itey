@@ -29,7 +29,7 @@ const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
 // El video y las paginas se ven mas grandes que la portada impresa, para alcanzar a
 // leer la letra pequeña sin acercarse tanto que la camara pierda la portada.
 const AUMENTO_VIDEO = 1.3;
-const AUMENTO_PAGINA = 1.3;       // sin gafas (pedido de Jeffry, 24-oct)
+const AUMENTO_PAGINA = 1.5;       // sin gafas (Jeffry: 1,3 no alcanzaba, 24-oct)
 const AUMENTO_PAGINA_GAFAS = 1.5;
 const SILENCIO = 'img/silencio.mp4'; // 1 segundo sin sonido: deja el reproductor con permiso de sonar
 
