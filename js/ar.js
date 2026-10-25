@@ -28,8 +28,11 @@ const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 // El video y las paginas se ven mas grandes que la portada impresa, para alcanzar a
 // leer la letra pequeña sin acercarse tanto que la camara pierda la portada.
-const AUMENTO_VIDEO = 1.3;
-const AUMENTO_PAGINA = 1.5;       // sin gafas (Jeffry: 1,3 no alcanzaba, 24-oct)
+// Sin gafas (Jeffry, 24-oct): con 1,3 y 1,5 se veian pequeños frente a la pantalla.
+const AUMENTO_VIDEO = 2;
+const AUMENTO_PAGINA = 2;
+// Con gafas: mas grande, el boton 3D «Leer revista» quedaria fuera de la vista.
+const AUMENTO_VIDEO_GAFAS = 1.3;
 const AUMENTO_PAGINA_GAFAS = 1.5;
 const SILENCIO = 'img/silencio.mp4'; // 1 segundo sin sonido: deja el reproductor con permiso de sonar
 
@@ -536,6 +539,8 @@ function pintarGafas() {
     }
     b.pagina.setAttribute('visible', !!(lectura && lectura.i === i));
     if (lectura && lectura.i === i) colocarPagina(i);
+    const aumento = conGafas ? AUMENTO_VIDEO_GAFAS : AUMENTO_VIDEO;
+    planos[i].setAttribute('scale', `${aumento} ${aumento} 1`);
     if (aqui) colocarBotones(i);
   });
   document.querySelectorAll('.mirable').forEach(el => el.classList.remove('mirable'));
@@ -557,7 +562,7 @@ function colocarBotones(i) {
   const [anchoPortada, altoPortada] = dimensiones[i] || [1, 1.414];
   const altoP = altoPortada / anchoPortada;
   const b = botones3d[i];
-  b.leer.setAttribute('position', `0 ${-(altoP * AUMENTO_VIDEO / 2 + 0.12)} 0.03`); // debajo del video agrandado
+  b.leer.setAttribute('position', `0 ${-(altoP * AUMENTO_VIDEO_GAFAS / 2 + 0.12)} 0.03`); // debajo del video agrandado
   if (lectura && lectura.i === i) {
     const { ancho, alto } = colocarPagina(i);
     // Las flechas montadas sobre el borde de la pagina, para que no queden fuera de la vista.
