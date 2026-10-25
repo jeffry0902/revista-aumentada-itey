@@ -26,6 +26,11 @@ const videoGrande = $('video-grande');
 const ESPERA_PAUSA_MS = 1500;
 const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '#ffffff' };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+// El video y las paginas se ven mas grandes que la portada impresa, para alcanzar a
+// leer la letra pequeña sin acercarse tanto que la camara pierda la portada.
+const AUMENTO_VIDEO = 1.3;
+const AUMENTO_PAGINA = 1.3;       // sin gafas (pedido de Jeffry, 24-oct)
+const AUMENTO_PAGINA_GAFAS = 1.5;
 const SILENCIO = 'img/silencio.mp4'; // 1 segundo sin sonido: deja el reproductor con permiso de sonar
 
 let camara = null;
@@ -170,6 +175,7 @@ function crearEscena(targets) {
     plano.setAttribute('width', '1');
     plano.setAttribute('height', '0.5625');
     plano.setAttribute('position', '0 0 0.01');
+    plano.setAttribute('scale', `${AUMENTO_VIDEO} ${AUMENTO_VIDEO} 1`);
     plano.setAttribute('visible', 'false');
     ancla.appendChild(plano);
     const b = {
@@ -530,8 +536,6 @@ function pintarGafas() {
     }
     b.pagina.setAttribute('visible', !!(lectura && lectura.i === i));
     if (lectura && lectura.i === i) colocarPagina(i);
-    // Con las gafas el video tambien se agranda un poco sobre la portada.
-    planos[i].setAttribute('scale', conGafas ? '1.3 1.3 1' : '1 1 1');
     if (aqui) colocarBotones(i);
   });
   document.querySelectorAll('.mirable').forEach(el => el.classList.remove('mirable'));
@@ -553,7 +557,7 @@ function colocarBotones(i) {
   const [anchoPortada, altoPortada] = dimensiones[i] || [1, 1.414];
   const altoP = altoPortada / anchoPortada;
   const b = botones3d[i];
-  b.leer.setAttribute('position', `0 ${-(altoP * 1.3 / 2 + 0.12)} 0.03`); // debajo del video agrandado
+  b.leer.setAttribute('position', `0 ${-(altoP * AUMENTO_VIDEO / 2 + 0.12)} 0.03`); // debajo del video agrandado
   if (lectura && lectura.i === i) {
     const { ancho, alto } = colocarPagina(i);
     // Las flechas montadas sobre el borde de la pagina, para que no queden fuera de la vista.
@@ -563,12 +567,11 @@ function colocarBotones(i) {
   }
 }
 
-// La pagina encima de la portada impresa: del mismo alto que la portada en el celular,
-// y bastante mas grande con las gafas, para alcanzar a leerla.
+// La pagina encima de la portada impresa, mas grande que ella para alcanzar a leerla.
 function colocarPagina(i) {
   const [anchoPortada, altoPortada] = dimensiones[i] || [1, 1.414];
   const revista = camara.revistas[i];
-  const alto = (altoPortada / anchoPortada) * (gafasActivas() ? 1.5 : 1);
+  const alto = (altoPortada / anchoPortada) * (gafasActivas() ? AUMENTO_PAGINA_GAFAS : AUMENTO_PAGINA);
   const ancho = alto / (aspectos.get(revista.pagina(lectura.pagina)) || 1.414);
   botones3d[i].pagina.setAttribute('width', ancho);
   botones3d[i].pagina.setAttribute('height', alto);
