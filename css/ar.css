@@ -118,6 +118,30 @@
 .tarjeta-ar__botones { display: flex; flex-wrap: wrap; gap: 10px; }
 .tarjeta-ar__botones .boton { flex: 1 1 140px; min-height: 50px; padding: 10px 12px; }
 .boton--rojo { background: var(--rojo); color: var(--blanco); }
+
+/* Lectura de la revista sobre la portada (sin gafas) */
+.tarjeta-ar__numero { margin: 0 0 2px; color: var(--amarillo); font-weight: 800; font-size: 1.05rem; }
+.tarjeta-ar__ayuda { margin: 0 0 10px; color: #cbd5e1; font-size: .85rem; }
+.flecha-ar {
+  position: fixed;
+  top: 42%;
+  z-index: 21;
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--amarillo);
+  color: var(--azul-900);
+  font: inherit;
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgb(0 0 0 / .35);
+  -webkit-tap-highlight-color: transparent;
+}
+.flecha-ar:active { transform: scale(.94); }
+.flecha-ar--izquierda { left: max(10px, env(safe-area-inset-left)); }
+.flecha-ar--derecha { right: max(10px, env(safe-area-inset-right)); }
 @media (orientation: landscape) and (max-height: 500px) {
   /* Acostado, la tarjeta no debe tapar la portada */
   .tarjeta-ar { padding: 10px 12px; max-width: 640px; }

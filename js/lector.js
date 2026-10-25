@@ -7,7 +7,8 @@
 
 const $ = (raiz, sel) => raiz.querySelector(sel);
 
-export function abrirLector(revista, { alCerrar, textoVolver = '‹ Volver' } = {}) {
+// inicio: pagina en la que se abre (1 = portada).
+export function abrirLector(revista, { alCerrar, textoVolver = '‹ Volver', inicio = 1 } = {}) {
   const total = revista.paginas;
   const capa = document.createElement('div');
   capa.className = 'lector';
@@ -92,6 +93,7 @@ export function abrirLector(revista, { alCerrar, textoVolver = '‹ Volver' } = 
   capa.addEventListener('click', e => e.stopPropagation());
 
   document.body.appendChild(capa);
+  if (inicio > 1) contenedor.scrollLeft = (Math.min(inicio, total) - 1) * contenedor.clientWidth;
   marcar();
   return { cerrar };
 }

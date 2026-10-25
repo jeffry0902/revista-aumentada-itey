@@ -4,10 +4,12 @@
 // por revista en el orden de revistas.json y reproduce el video de la que se detecte.
 // Con una sola camara en revistas.json, ar.html sin parametros abre esa.
 //
-// Si la revista trae sus paginas, la tarjeta muestra «Leer revista». En el modo
-// gafas (pantalla partida, js/ar-gafas.js) no hay toques: debajo de la portada
-// aparece un boton 3D «Leer revista» que se elige mirandolo 2 segundos, y las
-// paginas se ven encima de la portada impresa, con flechas para pasarlas.
+// Si la revista trae sus paginas, la tarjeta muestra «Leer revista»: las paginas se
+// ven de a una encima de la portada impresa (realidad aumentada), con flechas en la
+// pantalla o deslizando el dedo; «Pantalla completa» abre el lector de js/lector.js.
+// En el modo gafas (pantalla partida, js/ar-gafas.js) no hay toques: debajo de la
+// portada aparece un boton 3D «Leer revista» que se elige mirandolo 2 segundos, y las
+// paginas se ven encima de la portada impresa, con flechas 3D para pasarlas.
 
 import { cargarDatos, camarasConRevistas, buscarCamara, nombreCamara, rutaTargets, videoPendiente, esc } from './datos.js';
 import { iniciarContador, contarVisita, contarEvento } from './contador.js';
@@ -32,7 +34,7 @@ let dimensiones = [];    // [ancho, alto] de cada portada, para ajustar el video
 const planos = [];       // un plano de video por revista, en el orden del JSON
 const botones3d = [];    // por revista: { leer, pagina, anterior, siguiente, video } (modo gafas)
 let camara3d = null;
-let lectura = null;      // { i, pagina } mientras se hojea una revista con las gafas
+let lectura = null;      // { i, pagina } mientras se hojea una revista sobre la portada
 let lectorAbierto = false; // lector en pantalla (sin gafas)
 let preparado = false;   // la primera vez que la camara quedo lista
 let reiniciando = false; // MindAR se esta reiniciando (giro de pantalla, modo gafas)
@@ -172,7 +174,7 @@ function crearEscena(targets) {
       anterior: botonMirable(texturas.anterior, 0.26, 0.26),
       siguiente: botonMirable(texturas.siguiente, 0.26, 0.26),
     };
-    b.leer.addEventListener('click', () => leerConGafas(i));
+    b.leer.addEventListener('click', () => leer(i));
     b.video.addEventListener('click', () => salirLectura(true));
     b.anterior.addEventListener('click', () => hojear(-1));
     b.siguiente.addEventListener('click', () => hojear(1));
@@ -425,14 +427,23 @@ $('cerrar-grande').addEventListener('click', () => {
 
 // ---------- Revista completa en la pantalla (sin gafas) ----------
 
+// «Leer revista»: las paginas, de a una, encima de la portada impresa.
 $('boton-leer').addEventListener('click', () => {
-  if (actual === -1) return;
-  const revista = camara.revistas[actual];
-  videoAR.pause();
+  if (actual !== -1) leer(actual);
+});
+$('lectura-anterior').addEventListener('click', () => hojear(-1));
+$('lectura-siguiente').addEventListener('click', () => hojear(1));
+$('lectura-video').addEventListener('click', () => salirLectura(true));
+
+// «Pantalla completa»: el lector de siempre, abierto en la pagina que se estaba viendo.
+$('lectura-completa').addEventListener('click', () => {
+  if (!lectura) return;
+  const revista = camara.revistas[lectura.i];
   if (sistema) sistema.pause();
   lectorAbierto = true;
-  contarEvento(`ar-leer-${revista.id}`, `AR · leer ${revista.id}`);
+  contarEvento(`ar-leer-completa-${revista.id}`, `AR · pantalla completa ${revista.id}`);
   abrirLector(revista, {
+    inicio: lectura.pagina,
     textoVolver: '‹ Volver a la cámara',
     alCerrar: () => {
       lectorAbierto = false;
@@ -441,6 +452,20 @@ $('boton-leer').addEventListener('click', () => {
     },
   });
 });
+
+// Deslizar el dedo de lado tambien pasa la pagina.
+let toqueInicio = null;
+document.addEventListener('touchstart', e => {
+  toqueInicio = lectura && !gafasActivas() && e.touches.length === 1
+    ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!toqueInicio || !lectura) return;
+  const dx = e.changedTouches[0].clientX - toqueInicio.x;
+  const dy = e.changedTouches[0].clientY - toqueInicio.y;
+  toqueInicio = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) hojear(dx < 0 ? 1 : -1);
+}, { passive: true });
 
 // ---------- Modo gafas ----------
 
@@ -484,7 +509,8 @@ function pintarGafas() {
       b[nombre].setAttribute('visible', si);
       if (si) elegibles.push(b[nombre]);
     }
-    b.pagina.setAttribute('visible', !!(lectura && lectura.i === i && conGafas));
+    b.pagina.setAttribute('visible', !!(lectura && lectura.i === i));
+    if (lectura && lectura.i === i) colocarPagina(i);
     // Con las gafas el video tambien se agranda un poco sobre la portada.
     planos[i].setAttribute('scale', conGafas ? '1.3 1.3 1' : '1 1 1');
     if (aqui) colocarBotones(i);
@@ -510,12 +536,7 @@ function colocarBotones(i) {
   const b = botones3d[i];
   b.leer.setAttribute('position', `0 ${-(altoP * 1.3 / 2 + 0.12)} 0.03`); // debajo del video agrandado
   if (lectura && lectura.i === i) {
-    // Con las gafas la pagina se ve bastante mas grande que la portada, para alcanzar a leerla.
-    const revista = camara.revistas[i];
-    const alto = altoP * 1.5;
-    const ancho = alto / (aspectos.get(revista.pagina(lectura.pagina)) || 1.414);
-    b.pagina.setAttribute('width', ancho);
-    b.pagina.setAttribute('height', alto);
+    const { ancho, alto } = colocarPagina(i);
     // Las flechas montadas sobre el borde de la pagina, para que no queden fuera de la vista.
     b.anterior.setAttribute('position', `${-(ancho / 2 - 0.02)} 0 0.04`);
     b.siguiente.setAttribute('position', `${ancho / 2 - 0.02} 0 0.04`);
@@ -523,9 +544,21 @@ function colocarBotones(i) {
   }
 }
 
-async function leerConGafas(i) {
+// La pagina encima de la portada impresa: del mismo alto que la portada en el celular,
+// y bastante mas grande con las gafas, para alcanzar a leerla.
+function colocarPagina(i) {
+  const [anchoPortada, altoPortada] = dimensiones[i] || [1, 1.414];
   const revista = camara.revistas[i];
-  if (!revista.paginas || !gafasActivas()) return;
+  const alto = (altoPortada / anchoPortada) * (gafasActivas() ? 1.5 : 1);
+  const ancho = alto / (aspectos.get(revista.pagina(lectura.pagina)) || 1.414);
+  botones3d[i].pagina.setAttribute('width', ancho);
+  botones3d[i].pagina.setAttribute('height', alto);
+  return { ancho, alto };
+}
+
+async function leer(i) {
+  const revista = camara.revistas[i];
+  if (!revista.paginas) return;
   contarEvento(`ar-leer-${revista.id}`, `AR · leer ${revista.id}`);
   videoAR.pause();
   planos[i].setAttribute('visible', 'false');
@@ -548,6 +581,7 @@ async function mostrarPagina() {
   if (lectura !== actualLectura) return;
   botones3d[lectura.i].pagina.setAttribute('src', src);
   pintarGafas();
+  pintarLectura();
   // La siguiente queda descargada para que el cambio sea inmediato.
   if (lectura.pagina < revista.paginas) medir(revista.pagina(lectura.pagina + 1));
 }
@@ -559,6 +593,7 @@ function salirLectura(volverAlVideo) {
   botones3d[i].pagina.setAttribute('visible', 'false');
   if (volverAlVideo) reproducir();
   pintarGafas();
+  pintarLectura();
 }
 
 function medir(src) {
@@ -645,6 +680,24 @@ function pintarTarjeta(i) {
   $('boton-leer').hidden = !revista.paginas;
   $('tarjeta-ar').hidden = false;
   pintarBotonSonido();
+  pintarLectura();
+}
+
+// Controles de la lectura sobre la portada (sin gafas): numero de pagina, flechas,
+// «Ver video» y «Pantalla completa» en lugar de los botones de la tarjeta.
+function pintarLectura() {
+  const leyendo = !!lectura && !gafasActivas();
+  $('tarjeta-botones').hidden = leyendo;
+  $('tarjeta-lectura').hidden = !leyendo;
+  if (!leyendo) {
+    $('lectura-anterior').hidden = true;
+    $('lectura-siguiente').hidden = true;
+    return;
+  }
+  const total = camara.revistas[lectura.i].paginas;
+  $('lectura-numero').textContent = `Página ${lectura.pagina} de ${total}`;
+  $('lectura-anterior').hidden = lectura.pagina <= 1;
+  $('lectura-siguiente').hidden = lectura.pagina >= total;
 }
 
 // Solo aparece si revistas.json tiene mas de una camara.

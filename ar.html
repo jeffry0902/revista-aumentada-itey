@@ -49,7 +49,7 @@
       <span id="tarjeta-equipo"></span>
       <span id="tarjeta-pendiente" class="tarjeta-ar__pendiente" hidden>El video de esta revista estará disponible muy pronto.</span>
     </div>
-    <div class="tarjeta-ar__botones">
+    <div id="tarjeta-botones" class="tarjeta-ar__botones">
       <button id="boton-sonido" class="boton boton--blanco" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
         Activar sonido
@@ -63,7 +63,18 @@
         Leer revista
       </button>
     </div>
+    <!-- Mientras se lee la revista sobre la portada (sin gafas) -->
+    <div id="tarjeta-lectura" hidden>
+      <p id="lectura-numero" class="tarjeta-ar__numero"></p>
+      <p class="tarjeta-ar__ayuda">Apunta a la portada · desliza o usa las flechas para pasar la página</p>
+      <div class="tarjeta-ar__botones">
+        <button id="lectura-video" class="boton boton--blanco" type="button">▶ Ver video</button>
+        <button id="lectura-completa" class="boton" type="button">Pantalla completa</button>
+      </div>
+    </div>
   </div>
+  <button id="lectura-anterior" class="flecha-ar flecha-ar--izquierda" type="button" aria-label="Página anterior" hidden>‹</button>
+  <button id="lectura-siguiente" class="flecha-ar flecha-ar--derecha" type="button" aria-label="Página siguiente" hidden>›</button>
 
   <div id="cargando" class="capa">
     <div class="capa__caja">
