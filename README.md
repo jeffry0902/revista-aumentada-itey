@@ -26,10 +26,10 @@ en el que los estudiantes explican su artículo. No hay que instalar ninguna app
 | `herramientas/paginas.html` | Para el docente: convierte el PDF de una revista en las páginas que se leen en la galería. |
 
 El visitante:
-1. Toca **Abrir cámara** (o escanea el QR de la cámara en el cartel de cualquier stand).
-2. Permite el uso de la cámara.
-3. Apunta a la portada de cualquier revista. El video aparece anclado sobre la página y abajo sale una tarjeta con el curso, el título y el botón **Ver video**.
-4. Toca la pantalla para oír el sonido. Los celulares no dejan sonar un video sin un toque previo, así que el primer video puede empezar en silencio.
+1. Toca **Abrir cámara** (o escanea el QR de la cámara en la portada).
+2. Toca **Toca para empezar**. Los celulares no dejan sonar un video sin un toque previo: ese toque da el permiso y desde ahí los videos suenan solos.
+3. Permite el uso de la cámara.
+4. Apunta a la portada de cualquier revista. El video aparece anclado sobre la página, con sonido, y abajo sale una tarjeta con el curso, el título y los botones **Ver video** y **Leer revista**.
 
 Puede pasar de stand en stand sin cerrar la cámara: reconoce cualquier revista de la feria.
 Si la cámara no funciona, escanea el **QR de la revista**, que abre `ver.html` con el video.
@@ -315,7 +315,7 @@ Para el informe, GoatCounter permite exportar los datos a CSV desde su panel.
 - Limpiar el lente de la cámara.
 - Apuntar a la portada **completa** a unos 30 cm, quieto 2 segundos.
 - Si no reconoce en 10 segundos: usar el **QR** de la revista (plan B).
-- Si el video no suena: tocar la pantalla y revisar que el celular no esté en silencio.
+- Si el video no suena: subir el volumen, revisar que el celular no esté en silencio y tocar la pantalla.
 - Si abrió el enlace desde una app lectora de QR y la cámara no abre: menú ⋮ → **Abrir en Chrome**.
 
 **Plan B y plan C**
@@ -500,7 +500,7 @@ Sin cámara 360°, el efecto se puede probar con escenas hechas en computador (B
 | Sale "Aviso para el docente" | El `.mind` tiene otro número de portadas que el JSON: recompila. |
 | "Este navegador no puede usar la cámara" | Se abrió dentro de una app (lector de QR, Facebook, WhatsApp). Abrir en Chrome o Safari. |
 | La cámara se ve negra o pide permiso otra vez | Candado junto a la dirección → Permisos → Cámara → Permitir, y recargar. |
-| El video empieza sin sonido | Normal: tocar la pantalla. Revisar el botón de volumen y el modo silencio. |
+| El video empieza sin sonido | Revisar el botón de volumen y el modo silencio. Si sigue mudo, tocar la pantalla. |
 | El video no carga | Revisa que exista `revistas/<id>/video.mp4` con ese nombre exacto. |
 | El video tarda en empezar | Red lenta: el video pesa hasta 8 MB. El botón "Ver video" o el QR son iguales de pesados; ayuda un wifi mejor o datos móviles. |
 | La página no muestra un cambio | `sw.js` hace que el celular pida siempre la última versión. Un celular que abrió el sitio antes del 18 de octubre puede tardar hasta 10 minutos la primera vez; si no, borrar los datos del sitio (candado → Configuración del sitio → Borrar). |

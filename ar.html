@@ -50,10 +50,6 @@
       <span id="tarjeta-pendiente" class="tarjeta-ar__pendiente" hidden>El video de esta revista estará disponible muy pronto.</span>
     </div>
     <div id="tarjeta-botones" class="tarjeta-ar__botones">
-      <button id="boton-sonido" class="boton boton--blanco" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
-        Activar sonido
-      </button>
       <button id="boton-ver" class="boton" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
         Ver video
@@ -82,6 +78,19 @@
       <p id="cargando-texto">Preparando la cámara…</p>
       <div class="progreso" id="progreso" hidden><div id="progreso-barra"></div></div>
       <p class="capa__nota">La primera vez puede tardar unos segundos.</p>
+    </div>
+  </div>
+
+  <!-- Primer toque: sin el, los celulares no dejan sonar los videos (js/ar.js) -->
+  <div id="empezar" class="capa" hidden>
+    <div class="capa__caja">
+      <h2>Revista Aumentada</h2>
+      <p>Apunta la cámara a la portada de una revista y mira su video.</p>
+      <button id="boton-empezar" class="boton boton--empezar" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+        Toca para empezar
+      </button>
+      <p class="capa__nota">Sube el volumen: los videos tienen sonido.</p>
     </div>
   </div>
 

@@ -167,6 +167,17 @@
 .capa .acciones { justify-content: center; }
 .capa__nota { font-size: .85rem; }
 .capa .rejilla-cursos .boton { background: var(--blanco); color: var(--azul-800); }
+.boton--empezar {
+  min-height: 62px;
+  margin: 8px 0 18px;
+  padding: 14px 34px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: var(--amarillo);
+  color: var(--azul-900);
+  box-shadow: 0 8px 22px rgb(0 0 0 / .35);
+}
+.boton--empezar svg { width: 26px; height: 26px; }
 
 .girador {
   width: 48px;

@@ -26,6 +26,7 @@ const videoGrande = $('video-grande');
 const ESPERA_PAUSA_MS = 1500;
 const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '#ffffff' };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+const SILENCIO = 'img/silencio.mp4'; // 1 segundo sin sonido: deja el reproductor con permiso de sonar
 
 let camara = null;
 let escena = null;
@@ -42,7 +43,7 @@ let camaraHD = false;    // con las gafas se pide la camara en 1280x720
 const aspectos = new Map();
 let actual = -1;         // revista cargada en el reproductor
 let visible = -1;        // revista que la camara esta viendo (-1 = ninguna)
-let sonido = false;      // el visitante ya toco la pantalla
+let sonido = false;      // el visitante ya toco «Toca para empezar» (o la pantalla)
 let pausaPendiente = null;
 const sinVideo = new Set(); // revistas cuyo video todavía no se ha subido
 
@@ -88,9 +89,13 @@ async function iniciar() {
       (esIOS() ? 'toca el ícono de la brújula o «Abrir en Safari».' : 'toca el menú ⋮ y elige «Abrir en Chrome».'));
   }
 
+  // Las portadas se descargan mientras se espera el toque de «Toca para empezar».
+  const descarga = descargarTargets(rutaTargets(camara.id));
+  descarga.catch(() => {}); // si falla, se avisa despues del toque
+  await esperarToque();
   let targets;
   try {
-    targets = await descargarTargets(rutaTargets(camara.id));
+    targets = await descarga;
   } catch (error) {
     return mostrarError('La cámara todavía no está lista',
       `Puedes ver los videos desde la lista. (${error.message})`);
@@ -373,31 +378,45 @@ async function reproducir() {
     await videoAR.play();
   } catch (error) {
     if (error.name === 'AbortError') return; // se cambio de video mientras cargaba
-    // El celular no dejo sonar el video: sigue sin sonido y con el boton a la vista.
+    // El celular no dejo sonar el video: sigue sin sonido hasta el proximo toque.
     if (!videoAR.muted) {
       sonido = false;
       videoAR.muted = true;
       videoAR.play().catch(() => {});
     }
   }
-  pintarBotonSonido();
 }
 
 // ---------- Sonido ----------
 // Los celulares solo dejan sonar un video despues de que la persona toca la
-// pantalla. El primer toque en cualquier parte activa el sonido.
+// pantalla, y quien llega por el QR de la portada todavia no la ha tocado. Por eso
+// la camara abre con «Toca para empezar»: ese toque da el permiso y desde ahi los
+// videos suenan solos al reconocer la portada, sin boton de sonido.
+
+function esperarToque() {
+  $('empezar').hidden = false;
+  return new Promise(resolve => {
+    $('boton-empezar').addEventListener('click', () => {
+      $('empezar').hidden = true;
+      activarSonido();
+      // En iPhone el permiso queda en el reproductor que sono dentro del toque:
+      // se le hace sonar un segundo de silencio antes del primer video.
+      if (actual === -1) {
+        videoAR.src = SILENCIO;
+        videoAR.play().then(() => { if (actual === -1) videoAR.pause(); }).catch(() => {});
+      }
+      resolve();
+    }, { once: true });
+  });
+}
 
 function activarSonido() {
   sonido = true;
   videoAR.muted = false;
   if (visible !== -1 && !ocupado()) videoAR.play().catch(() => {});
-  pintarBotonSonido();
 }
+// Respaldo: si aun asi el celular no lo dejo sonar, cualquier toque lo activa.
 document.addEventListener('click', activarSonido);
-
-function pintarBotonSonido() {
-  $('boton-sonido').hidden = (sonido && !videoAR.muted) || sinVideo.has(actual);
-}
 
 // ---------- Video en grande (respaldo si el anclaje falla) ----------
 
@@ -679,7 +698,6 @@ function pintarTarjeta(i) {
   $('boton-ver').hidden = sinVideo.has(i);
   $('boton-leer').hidden = !revista.paginas;
   $('tarjeta-ar').hidden = false;
-  pintarBotonSonido();
   pintarLectura();
 }
 
