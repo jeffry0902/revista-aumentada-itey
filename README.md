@@ -375,8 +375,6 @@ cartela de museo (curso, equipo, título). Al frente, un **atril con la instrucc
   cabeza, se "arrastra" (las gafas VR dedicadas apagan la imagen entre cuadros; un celular no puede). Menos se nota
   cuantos más cuadros por segundo, pero en Chrome Android la página no puede elegirlos: los decide el celular.
   En el Samsung: Ajustes → Pantalla → **Fluidez de movimiento → Adaptable** (hasta 120 Hz) y **sin Ahorro de energía**.
-  Para medirlo dentro de las gafas: abrir `sala.html?cps` (abajo, en verde, los cuadros por segundo; en rojo si
-  bajan de 55, que es cuando más se nota el arrastre).
 - **iPhone:** Safari no tiene modo gafas propio y A-Frame usa un reemplazo que no conocía los iPhone del 12 en adelante:
   suponía una pantalla de 10,4 cm y se veía doble. `js/pantalla.js` calcula el tamaño real de cada iPhone (por la
   densidad de su pantalla) y lo corrige. Para usarlo:

@@ -44,14 +44,6 @@ const MIRADA_PORTADA_MS = 5400;  // mirar fijo la portada ampliada para abrir su
                                  // para alcanzar a leerla antes (pedido de Jeffry, 23-oct)
 const ALTO_PAGINA_CERCA = 2.3; // una pagina acercada para leerla moviendo la cabeza
 const ESPERA_FIN_MS = 6000; // al terminar el video, vuelve sola a la galeria
-// Resolucion pedida en modo gafas (WebXR), ver entrar(): 2 = la de la pantalla (Chrome no deja
-// pasar de ahi); 1 = la de Chrome por defecto (~70 %). Para probar otra sin cambiarla a todos:
-// sala.html?cps&escala=1.2 (menos resolucion: menos nitidez, pero mas cuadros por segundo).
-const ESCALA_GAFAS = (() => {
-  const pedida = Number(new URLSearchParams(location.search).get('escala'));
-  return pedida >= 0.5 && pedida <= 2 ? pedida : 2;
-})();
-
 const COLOR = { azul: '#13204a', amarillo: '#ffd21f', rojo: '#e3171e', blanco: '#ffffff' };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 
@@ -71,51 +63,6 @@ let temporizadorFin = null;
 let temporizadorAviso = null;
 let audioListo = false;
 const aspectos = new Map(); // alto/ancho de cada imagen ya medida
-
-// Medidor de cuadros por segundo dentro de las gafas: sala.html?cps (para el encargado).
-// Redibuja siempre el mismo lienzo (una imagen nueva por segundo llenaria la memoria).
-AFRAME.registerComponent('medidor-cps', {
-  init() {
-    this.cuadros = 0;
-    this.desde = performance.now();
-    this.lienzo = document.createElement('canvas');
-    this.lienzo.width = 420;
-    this.lienzo.height = 120;
-    this.textura = new AFRAME.THREE.CanvasTexture(this.lienzo);
-    this.el.setAttribute('geometry', { primitive: 'plane', width: 0.34, height: 0.34 * 120 / 420 });
-    this.el.setAttribute('material', { shader: 'flat', transparent: true });
-    this.el.addEventListener('object3dset', () => this.ponerTextura());
-    this.ponerTextura();
-  },
-  ponerTextura() {
-    const malla = this.el.getObject3D('mesh');
-    if (malla && malla.material.map !== this.textura) {
-      malla.material.map = this.textura;
-      malla.material.needsUpdate = true;
-    }
-  },
-  tick() {
-    this.cuadros++;
-    const ahora = performance.now();
-    if (ahora - this.desde < 1000) return;
-    const cps = Math.round(this.cuadros * 1000 / (ahora - this.desde));
-    const sesion = escena.xrSession;
-    const pantalla = sesion && sesion.frameRate ? ` · pantalla ${Math.round(sesion.frameRate)}` : '';
-    const ctx = this.lienzo.getContext('2d');
-    ctx.clearRect(0, 0, 420, 120);
-    redondeado(ctx, 0, 0, 420, 120, 30, 'rgba(0,0,0,0.7)');
-    ctx.fillStyle = cps >= 55 ? '#4ade80' : '#f87171';
-    ctx.font = `800 46px ${FUENTE}`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`${cps} cps${pantalla}`, 210, 58, 400);
-    ctx.fillStyle = '#e5e7eb';
-    ctx.font = `600 28px ${FUENTE}`;
-    ctx.fillText(`resolución ${ESCALA_GAFAS}`, 210, 100, 400);
-    this.textura.needsUpdate = true;
-    this.cuadros = 0;
-    this.desde = ahora;
-  },
-});
 
 iniciar();
 
@@ -138,12 +85,8 @@ async function iniciar() {
   }
 
   await esperarEscena();
-  // Nitidez en Android: el modo gafas lo hace Chrome (WebXR), que dibuja al 70 % de la
-  // resolucion de la pantalla: por eso fuera de las gafas se ve nitido y dentro no. Se le pide
-  // la resolucion completa (Chrome no deja pasar de la de la pantalla). Solo con WebXR: en
-  // iPhone el reemplazo de A-Frame ya dibuja a resolucion completa y no tiene ese limite
-  // (se dibujaria 4 veces mas y se trabaria). Vale para cualquier forma de entrar a las gafas.
-  if (escena.hasWebXR) escena.renderer.xr.setFramebufferScaleFactor(ESCALA_GAFAS);
+  // El modo gafas va con la resolucion que Chrome elige (WebXR). El 27-oct, en la feria, quedo en
+  // negro dentro de las gafas pidiendole el doble; con la de Chrome se veia igual (Jeffry, 24-oct).
   await Promise.all(lista.map(r => medir(r.objetivo)));
   sala = medidasSala(lista.length);
   // La penumbra del modo cine va entre la pantalla del video (esquinas a ~2,7 m) y las paredes.
@@ -180,9 +123,6 @@ async function iniciar() {
   });
   escena.addEventListener('exit-vr', () => { if (!$('entrada').hidden) return; salir(); });
   escena.addEventListener('enter-vr', pedirMasCuadros);
-  if (new URLSearchParams(location.search).has('cps')) {
-    $('camara').appendChild(crear('a-entity', { 'medidor-cps': '', position: '0 -0.46 -1' }));
-  }
   // «No permitir» en el aviso de A-Frame al cargar (iPhone).
   escena.addEventListener('deviceorientationpermissionrejected', sinSensores);
 }
@@ -236,7 +176,10 @@ function desbloquearAudio() {
   if (audioListo) return;
   audioListo = true;
   video.muted = false;
-  video.src = revistas[0].revista.video;
+  // Un segundo de silencio: basta para el permiso y no descarga ni decodifica un video real
+  // justo cuando Chrome abre el modo gafas (desde que la primera revista tiene video, el
+  // 27-oct, la galeria quedaba en negro dentro de las gafas).
+  video.src = 'img/silencio.mp4';
   const intento = video.play();
   if (intento && intento.then) intento.then(() => video.pause()).catch(() => {});
 }
