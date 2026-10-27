@@ -64,6 +64,21 @@ let temporizadorAviso = null;
 let audioListo = false;
 const aspectos = new Map(); // alto/ancho de cada imagen ya medida
 
+// Diagnostico del modo gafas (27-oct: en la feria se veia negro dentro de las gafas, solo con los
+// controles de Chrome). sala.html?diagnostico anota los errores y cuantos cuadros se dibujaron en
+// las gafas, y lo muestra al salir. Para aislar la causa: &sinsonido (no prepara el sonido al
+// entrar) y &pocas=3 (solo las primeras 3 revistas).
+const PARAMETROS = new URLSearchParams(location.search);
+const DIAGNOSTICO = PARAMETROS.has('diagnostico');
+const diagnostico = { errores: [], cuadrosGafas: 0, sesiones: 0 };
+if (DIAGNOSTICO) {
+  const anotar = texto => { if (diagnostico.errores.length < 20) diagnostico.errores.push(String(texto).slice(0, 300)); };
+  addEventListener('error', e => anotar(e.message + (e.filename ? ` (${e.filename.split('/').pop()}:${e.lineno})` : '')));
+  addEventListener('unhandledrejection', e => anotar('Promesa: ' + (e.reason && e.reason.message || e.reason)));
+  const errorOriginal = console.error;
+  console.error = (...args) => { anotar('console.error: ' + args.join(' ')); errorOriginal.apply(console, args); };
+}
+
 iniciar();
 
 async function iniciar() {
@@ -78,7 +93,9 @@ async function iniciar() {
   contarVisita('/sala', 'Sala virtual');
   if (datos.evento) $('evento').textContent = datos.evento;
 
-  const lista = revistasPorCurso(datos).flatMap(g => g.revistas.map(r => r.revista));
+  let lista = revistasPorCurso(datos).flatMap(g => g.revistas.map(r => r.revista));
+  const pocas = Number(PARAMETROS.get('pocas'));
+  if (pocas > 0) lista = lista.slice(0, pocas);
   if (!lista.length) {
     $('estado-carga').textContent = 'Todavía no hay revistas en revistas.json.';
     return;
@@ -123,6 +140,7 @@ async function iniciar() {
   });
   escena.addEventListener('exit-vr', () => { if (!$('entrada').hidden) return; salir(); });
   escena.addEventListener('enter-vr', pedirMasCuadros);
+  if (DIAGNOSTICO) prepararDiagnostico();
   // «No permitir» en el aviso de A-Frame al cargar (iPhone).
   escena.addEventListener('deviceorientationpermissionrejected', sinSensores);
 }
@@ -136,6 +154,39 @@ function pedirMasCuadros() {
   if (!sesion || !sesion.supportedFrameRates || !sesion.updateTargetFrameRate) return;
   const maximo = Math.max(...sesion.supportedFrameRates);
   if (maximo > 0) sesion.updateTargetFrameRate(maximo).catch(() => {});
+}
+
+function prepararDiagnostico() {
+  escena.addEventListener('enter-vr', () => {
+    diagnostico.sesiones++;
+    diagnostico.webxr = !!escena.xrSession;
+  });
+  // Cuenta los cuadros que se dibujan mientras hay una sesion de gafas (WebXR).
+  const contar = () => { if (escena.renderer.xr.isPresenting) diagnostico.cuadrosGafas++; };
+  escena.object3D.onBeforeRender = contar;
+  escena.addEventListener('exit-vr', mostrarDiagnostico);
+  $('boton-salir').addEventListener('click', mostrarDiagnostico);
+}
+
+function mostrarDiagnostico() {
+  setTimeout(() => {
+    const d = diagnostico;
+    const lineas = [
+      `Entradas a las gafas: ${d.sesiones} · WebXR: ${d.webxr ? 'sí' : 'no'}`,
+      `Cuadros dibujados en las gafas: ${d.cuadrosGafas}`,
+      `Sonido preparado al entrar: ${PARAMETROS.has('sinsonido') ? 'no' : 'sí'} · Revistas: ${revistas.length}`,
+      `Navegador: ${navigator.userAgent}`,
+      d.errores.length ? 'Errores:\n' + d.errores.join('\n') : 'Errores: ninguno',
+    ];
+    let caja = $('diagnostico');
+    if (!caja) {
+      caja = document.createElement('pre');
+      caja.id = 'diagnostico';
+      caja.style.cssText = 'white-space: pre-wrap; text-align: left; font-size: 13px; background: #fff; color: #000; padding: 10px; border-radius: 8px; margin: 12px 0; max-height: 50vh; overflow: auto;';
+      $('estado-carga').after(caja);
+    }
+    caja.textContent = lineas.join('\n');
+  }, 300);
 }
 
 function esperarEscena() {
@@ -173,7 +224,7 @@ function salir() {
 }
 
 function desbloquearAudio() {
-  if (audioListo) return;
+  if (audioListo || PARAMETROS.has('sinsonido')) return;
   audioListo = true;
   video.muted = false;
   // Un segundo de silencio: basta para el permiso y no descarga ni decodifica un video real
