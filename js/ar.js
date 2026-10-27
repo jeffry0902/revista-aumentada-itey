@@ -279,8 +279,7 @@ function reiniciarCamara() {
   reiniciosRecientes.push(ahora);
   reinicioForzado = false;
   reiniciando = true;
-  // Las portadas quedan "perdidas": asi, al volver a verlas, MindAR avisa de nuevo.
-  escena.querySelectorAll('[mindar-image-target]').forEach(ancla => ancla.components['mindar-image-target'].updateWorldMatrix(null));
+  perderPortadas();
   visible = -1;
   planos.forEach(p => p.setAttribute('visible', 'false'));
   pintarGafas();
@@ -308,6 +307,22 @@ function reiniciarCamara() {
     // Es memoria interna de MindAR 1.2.5: si cambia, solo se deja de liberar.
   }
   sistema.start(); // al terminar vuelve a emitir arReady
+}
+
+// Las portadas quedan "perdidas": asi, al volver a verlas, MindAR avisa de nuevo. Hace
+// falta cada vez que MindAR arranca otra vez el seguimiento (reinicio o fin de una pausa),
+// porque lo hace sin avisar que perdio la portada que estaba viendo: lo ultimo que se veia
+// quedaria pegado en la pantalla aunque el celular ya no apunte a la portada.
+function perderPortadas() {
+  escena.querySelectorAll('[mindar-image-target]').forEach(ancla => ancla.components['mindar-image-target'].updateWorldMatrix(null));
+}
+
+// Al cerrar la pantalla completa (video o revista). Mientras estuvo abierta, MindAR quedo
+// en pausa y no supo si el celular se aparto de la portada: se da por perdida. Si sigue
+// enfrente, la reconoce de nuevo en un instante; si no, la camara queda lista para otra.
+function volverACamara() {
+  perderPortadas();
+  if (sistema) sistema.unpause();
 }
 
 // ---------- Deteccion ----------
@@ -449,8 +464,7 @@ $('cerrar-grande').addEventListener('click', () => {
   videoGrande.pause();
   if (videoGrande.currentTime > 0) videoAR.currentTime = videoGrande.currentTime;
   $('pantalla-completa').hidden = true;
-  if (sistema) sistema.unpause();
-  reproducir();
+  volverACamara();
 });
 
 // ---------- Revista completa en la pantalla (sin gafas) ----------
@@ -475,8 +489,7 @@ $('lectura-completa').addEventListener('click', () => {
     textoVolver: '‹ Volver a la cámara',
     alCerrar: () => {
       lectorAbierto = false;
-      if (sistema) sistema.unpause();
-      reproducir();
+      volverACamara();
     },
   });
 });
